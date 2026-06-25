@@ -17,6 +17,9 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     /\.vercel\.app$/,
+    /\.web\.app$/,
+    /\.firebaseapp\.com$/,
+    'https://civicwatch-d81aa.web.app'
   ],
   credentials: true,
 }));

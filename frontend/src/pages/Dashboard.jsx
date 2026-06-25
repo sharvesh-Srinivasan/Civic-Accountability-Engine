@@ -181,6 +181,9 @@ function DynamicMapController({ reports, userDoc }) {
         navigator.geolocation.getCurrentPosition(pos => {
           map.setView([pos.coords.latitude, pos.coords.longitude], 13);
         });
+      } else {
+        // Fallback to Coimbatore center
+        map.setView([11.0168, 76.9558], 12);
       }
     }
   }, [reports, map, userDoc]);

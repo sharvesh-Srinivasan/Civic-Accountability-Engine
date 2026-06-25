@@ -46,7 +46,7 @@ function StepDots({ step, total = 3 }) {
 
 /* ─── Main component ────────────────────────────────────── */
 export default function NewReport() {
-  const { user } = useAuth();
+  const { user, userDoc } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -61,6 +61,32 @@ export default function NewReport() {
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Helper: Compress image to base64
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          // Compress to JPEG with 0.7 quality
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   // Step 2 data
   const [lat, setLat] = useState('');
@@ -157,16 +183,7 @@ export default function NewReport() {
 
   const uploadImage = async () => {
     if (!imageFile) return '';
-    if (!storage) return '';
-    const storageRef = ref(storage, `reports/${user.uid}/${Date.now()}_${imageFile.name}`);
-    return new Promise((resolve, reject) => {
-      const task = uploadBytesResumable(storageRef, imageFile);
-      task.on('state_changed',
-        snap => setUploadProgress(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
-        reject,
-        async () => resolve(await getDownloadURL(task.snapshot.ref))
-      );
-    });
+    return await compressImage(imageFile);
   };
 
   /* Step 1 → 2 */

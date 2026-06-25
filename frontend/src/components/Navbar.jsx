@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Shield, MapPin, Plus, FileText, LogOut, Menu, X, ChevronDown, Trophy } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, isAuthority, logout } = useAuth();
+  const { user, userDoc, isAuthority, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);

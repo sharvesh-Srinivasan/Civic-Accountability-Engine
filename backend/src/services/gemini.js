@@ -49,12 +49,21 @@ IMPORTANT: You MUST detect urgency context from the image (like proximity to a s
     // Fetch image and pass as inline data
     if (imageUrl && !imageUrl.includes('placeholder')) {
       try {
-        const imageResp = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 8000 });
-        const contentType = imageResp.headers['content-type'] || 'image/jpeg';
-        const base64 = Buffer.from(imageResp.data).toString('base64');
-        parts.push({ inlineData: { mimeType: contentType, data: base64 } });
-      } catch {
-        console.warn('Could not fetch image for classification, using text only');
+        if (imageUrl.startsWith('data:image/')) {
+          // Handle Base64 string directly (format: data:image/jpeg;base64,.....)
+          const matches = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            parts.push({ inlineData: { mimeType: matches[1], data: matches[2] } });
+          }
+        } else {
+          // Handle standard HTTP URL
+          const imageResp = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 8000 });
+          const contentType = imageResp.headers['content-type'] || 'image/jpeg';
+          const base64 = Buffer.from(imageResp.data).toString('base64');
+          parts.push({ inlineData: { mimeType: contentType, data: base64 } });
+        }
+      } catch (e) {
+        console.warn('Could not fetch/process image for classification, using text only', e.message);
       }
     }
 
