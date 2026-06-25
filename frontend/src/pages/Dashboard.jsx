@@ -15,6 +15,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import useSupercluster from 'use-supercluster';
 import 'leaflet/dist/leaflet.css';
+import AnalyticsOverview from '../components/AnalyticsOverview';
+import { motion } from 'framer-motion';
 /* ── Demo data ─────────────────────────────────────────── */
 const mkDate = (daysAgo) => ({ toDate: () => new Date(Date.now() - daysAgo * 864e5) });
 
@@ -569,11 +571,17 @@ export default function Dashboard() {
               <span className="text-sm text-ink-400">{filteredReports.length} shown</span>
             </div>
             <div className="space-y-2">
-              {filteredReports.slice(0, 6).map(r => {
+              {filteredReports.slice(0, 6).map((r, i) => {
                 const cfg = getCategoryConfig(r.category);
                 const date = r.createdAt?.toDate?.() ? r.createdAt.toDate() : new Date(r.createdAt);
                 return (
-                  <div key={r.id} className="card p-4 flex items-start gap-3">
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="card p-4 flex items-start gap-3 hover:shadow-md transition-shadow"
+                  >
                     <div className={`w-9 h-9 rounded flex items-center justify-center flex-shrink-0 ${cfg.iconBg}`}>
                       <cfg.Icon size={16} className={cfg.iconColor} />
                     </div>
@@ -600,7 +608,7 @@ export default function Dashboard() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -619,8 +627,14 @@ export default function Dashboard() {
                 const da = a.updatedAt?.toDate?.() || a.createdAt?.toDate?.() || new Date(0);
                 const db = b.updatedAt?.toDate?.() || b.createdAt?.toDate?.() || new Date(0);
                 return db - da;
-              }).slice(0, 5).map(r => (
-                <div key={`feed-${r.id}`} className="text-sm border-l-2 border-border pl-3 py-1">
+              }).slice(0, 5).map((r, i) => (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  key={`feed-${r.id}`}
+                  className="text-sm border-l-2 border-border pl-3 py-1"
+                >
                   <p className="text-ink-800 line-clamp-2">
                     <span className="font-medium capitalize">{r.category?.replace('_', ' ')}</span> marked as 
                     <span className="font-medium lowercase"> {r.status}</span>
@@ -628,7 +642,7 @@ export default function Dashboard() {
                   <p className="text-xs text-ink-400 mt-1">
                     in <span className="capitalize">{r.wardId?.replace(/ward(\d+)/i, 'Ward $1')}</span>
                   </p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>

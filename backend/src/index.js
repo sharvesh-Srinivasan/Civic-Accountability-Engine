@@ -5,6 +5,8 @@ import reportsRouter from './routes/reports.js';
 import commitmentsRouter from './routes/commitments.js';
 import wardsRouter from './routes/wards.js';
 import adminRouter from './routes/admin.js';
+import authRoutes from './routes/auth.js';
+import chatRoutes from './routes/chat.js';
 import { checkAndUpdateCommitments } from './services/commitmentChecker.js';
 
 const app = express();
@@ -29,6 +31,8 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/commitments', commitmentsRouter);
 app.use('/api/wards', wardsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Run commitment check on startup (daily would be via cron)
 setTimeout(async () => {

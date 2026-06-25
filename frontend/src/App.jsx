@@ -8,6 +8,7 @@ import NewReport from './pages/NewReport';
 import MyReports from './pages/MyReports';
 import AuthorityView from './pages/AuthorityView';
 import Onboarding from './pages/Onboarding';
+import CivicBot from './components/CivicBot';
 
 function PrivateRoute({ children }) {
   const { user, isOnboarded, isAuthority, loading } = useAuth();
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/authority" element={<AuthorityRoute><AuthorityView /></AuthorityRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <CivicBot />
     </div>
   );
 }

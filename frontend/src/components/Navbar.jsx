@@ -83,8 +83,9 @@ export default function Navbar() {
                     <span className="badge badge-acknowledged text-xs">Authority</span>
                   )}
                   {!isAuthority && userDoc && (
-                    <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full text-xs font-semibold ml-2 border border-amber-200">
-                      <Trophy size={12} /> {userDoc.civicPoints || 0} pts
+                    <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full text-xs font-semibold ml-2 border border-amber-200">
+                      <Trophy size={12} />
+                      {userDoc.civicPoints >= 200 ? 'Gold Hero' : userDoc.civicPoints >= 50 ? 'Silver Advocate' : 'Bronze Citizen'} ({userDoc.civicPoints || 0})
                     </div>
                   )}
                 </div>
