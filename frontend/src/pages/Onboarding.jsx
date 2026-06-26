@@ -204,46 +204,59 @@ export default function Onboarding() {
 
           {/* STEP 2: Address & Location */}
           {step === 2 && (
-            <div className="space-y-5 animate-fade-in">
-              <button 
-                type="button" 
-                onClick={handleAutoDetect} 
-                disabled={isLocating}
-                className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 py-3 rounded-lg font-medium transition-colors"
-              >
-                {isLocating ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
-                Auto-detect my location
-              </button>
-              
-              <div className="flex items-center gap-4 my-2">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-ink-400 uppercase tracking-widest font-semibold">Or enter manually</span>
-                <div className="flex-1 h-px bg-border" />
+            <div className="space-y-5 animate-fade-in text-center">
+              <div className="w-16 h-16 bg-navy-100 text-navy-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin size={32} />
               </div>
+              <h3 className="font-serif text-xl font-semibold text-ink-900 mb-1">Locate Your Neighborhood</h3>
+              <p className="text-sm text-ink-500 mb-6">CivicWatch is currently active across Tamil Nadu. Please select your area.</p>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="input-group col-span-2">
-                  <label className="input-label">Street Address</label>
-                  <input type="text" name="street" className="input" value={formData.street} onChange={handleChange} placeholder="House no, Street" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Locality / Area</label>
-                  <input type="text" name="locality" className="input" value={formData.locality} onChange={handleChange} placeholder="e.g. Indiranagar" />
-                </div>
-                <div className="input-group">
-                  <label className="input-label">Pincode</label>
-                  <input type="text" name="pincode" className="input" value={formData.pincode} onChange={handleChange} placeholder="560038" />
-                </div>
-              </div>
-
-              <div className="input-group pt-2">
-                <label className="input-label flex items-center gap-2"><MapPin size={14}/> Ward / Zone</label>
-                <select name="wardId" className="input" value={formData.wardId} onChange={handleChange}>
-                  <option value="" disabled>Select your ward</option>
-                  {wards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              <div className="input-group text-left">
+                <label className="input-label flex items-center gap-2"><MapPin size={14}/> City</label>
+                <select 
+                  className="input text-lg py-3" 
+                  value={formData.city || ''} 
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, city: e.target.value, wardId: '', locality: '', lat: null, lng: null }));
+                  }}
+                >
+                  <option value="" disabled>Select your city...</option>
+                  {[...new Set(wards.map(w => w.city))].filter(Boolean).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
                 </select>
-                <p className="text-xs text-ink-500 mt-1">This determines which local authorities are responsible for your area.</p>
               </div>
+
+              {formData.city && (
+                <div className="input-group text-left">
+                  <label className="input-label flex items-center gap-2"><MapPin size={14}/> Locality</label>
+                  <select 
+                    name="wardId" 
+                    className="input text-lg py-3" 
+                    value={formData.wardId} 
+                    onChange={(e) => {
+                      const selectedWard = wards.find(w => w.id === e.target.value);
+                      if (selectedWard) {
+                        setFormData(prev => ({
+                          ...prev,
+                          wardId: selectedWard.id,
+                          locality: selectedWard.name,
+                          lat: selectedWard.lat,
+                          lng: selectedWard.lng,
+                          city: selectedWard.city,
+                          street: '',
+                          pincode: ''
+                        }));
+                      }
+                    }}
+                  >
+                    <option value="" disabled>Select your area...</option>
+                    {wards.filter(w => w.city === formData.city).map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 

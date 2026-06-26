@@ -335,7 +335,8 @@ export default function Dashboard() {
 
   useEffect(() => { const cleanup = load(); return cleanup; }, [load]);
 
-  const filteredReports = filter === 'all' ? reports : reports.filter(r => r.status === filter);
+  const wardFilteredReports = userDoc?.wardId ? reports.filter(r => r.wardId === userDoc.wardId) : reports;
+  const filteredReports = filter === 'all' ? wardFilteredReports : wardFilteredReports.filter(r => r.status === filter);
   const openCount       = reports.filter(r => r.status === 'open').length;
   const resolvedCount   = reports.filter(r => r.status === 'resolved').length;
   const brokenCount     = commitments.filter(c => c.status === 'broken').length;
