@@ -3,7 +3,12 @@ import { db } from '../config/firebase.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let genAI;
+try {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
+} catch (err) {
+  console.warn('Gemini API key not found. Chat will be disabled.');
+}
 
 router.post('/', async (req, res) => {
   try {
@@ -37,6 +42,9 @@ Issues per Ward: ${JSON.stringify(wards)}
 Issues per Category: ${JSON.stringify(categories)}
 `;
 
+    if (!genAI || !process.env.GEMINI_API_KEY) {
+      return res.json({ reply: "I am CivicBot! Unfortunately, my AI features are currently disabled because the Gemini API key is missing on the server. Please add it to your Render environment variables." });
+    }
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are CivicBot, an AI assistant for the CivicWatch accountability platform. 
 Answer the user's question helpfully, concisely, and professionally. Use the following real-time system context if relevant. If they ask a general question, answer it. If they ask for statistics, use the context provided.

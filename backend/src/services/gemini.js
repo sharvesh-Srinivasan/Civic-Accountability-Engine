@@ -16,10 +16,17 @@ const FALLBACK_PATTERN = {
   recommended_priority: 'high',
 };
 
+let genAI;
+try {
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  }
+} catch (err) {
+  console.warn('Gemini client initialization failed', err.message);
+}
+
 export function getGenAI() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') return null;
-  return new GoogleGenerativeAI(apiKey);
+  return genAI;
 }
 
 export async function classifyReport(imageUrl, description) {
