@@ -63,7 +63,9 @@ function ClusterMarkers({ reports }) {
       return (
         <Marker key={`cluster-${cluster.id}`} position={[lat, lng]} icon={icon}
           eventHandlers={{
-            click: () => map.setView([lat, lng], Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20), { animate: true })
+            click: () => {
+              if (map) map.setView([lat, lng], Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20), { animate: false });
+            }
           }}
         />
       );
@@ -97,18 +99,23 @@ function ClusterMarkers({ reports }) {
 function DynamicMapController({ reports, userDoc }) {
   const map = useMap();
   useEffect(() => {
-    if (userDoc?.lat && userDoc?.lng) {
-      map.setView([userDoc.lat, userDoc.lng], 13);
-    } else {
-      const validReports = reports?.filter(r => r.lat && r.lng) || [];
-      if (validReports.length > 0) {
-        const bounds = L.latLngBounds(validReports.map(r => [r.lat, r.lng]));
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-      } else if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => map.setView([pos.coords.latitude, pos.coords.longitude], 13));
+    if (!map) return;
+    try {
+      if (userDoc?.lat && userDoc?.lng) {
+        map.setView([userDoc.lat, userDoc.lng], 13);
       } else {
-        map.setView([11.0168, 76.9558], 12);
+        const validReports = reports?.filter(r => r.lat && r.lng) || [];
+        if (validReports.length > 0) {
+          const bounds = L.latLngBounds(validReports.map(r => [r.lat, r.lng]));
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        } else if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(pos => map.setView([pos.coords.latitude, pos.coords.longitude], 13));
+        } else {
+          map.setView([11.0168, 76.9558], 12);
+        }
       }
+    } catch (e) {
+      console.warn("Map view set failed: ", e);
     }
   }, [reports, map, userDoc]);
   return null;

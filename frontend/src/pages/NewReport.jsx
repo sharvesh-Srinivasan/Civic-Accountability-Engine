@@ -31,7 +31,14 @@ export default function NewReport() {
   const [nearbyReports, setNearbyReports] = useState([]);
 
   useEffect(() => {
-    api.get('/api/wards').then(r => setWards(r.data)).catch(() => toast.error('Failed to load wards.'));
+    api.get('/api/wards').then(r => setWards(r.data)).catch(() => {
+      setWards([
+        { id: 'ward1', name: 'Ward 1 - Downtown' },
+        { id: 'ward2', name: 'Ward 2 - Westside' },
+        { id: 'ward3', name: 'Ward 3 - Eastside' },
+      ]);
+      toast('Using offline ward list (API unreachable)', { icon: '⚠️' });
+    });
   }, []);
 
   useEffect(() => {
@@ -209,10 +216,10 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Select a Category</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-stack-md">
                 {categories.map(c => (
-                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-lg border cursor-pointer transition-colors ${category === c.id ? 'border-primary bg-primary-fixed ring-2 ring-primary text-primary-fixed-dim' : 'border-outline-variant hover:bg-surface-container-low text-on-surface'}`}>
+                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-lg border cursor-pointer transition-colors ${category === c.id ? 'border-primary bg-primary-fixed ring-2 ring-primary text-on-primary-fixed' : 'border-outline-variant hover:bg-surface-container-low text-on-surface'}`}>
                     <input type="radio" name="category" value={c.id} checked={category === c.id} onChange={(e) => setCategory(e.target.value)} className="sr-only" />
-                    <span className="material-symbols-outlined text-4xl mb-1 text-primary">{c.icon}</span>
-                    <span className="font-label-md text-label-md text-center">{c.label}</span>
+                    <span className={`material-symbols-outlined text-4xl mb-1 ${category === c.id ? 'text-primary' : 'text-on-surface-variant'}`}>{c.icon}</span>
+                    <span className="font-label-md text-label-md text-center font-bold">{c.label}</span>
                   </label>
                 ))}
               </div>

@@ -1,16 +1,12 @@
 import React from 'react';
-import {
-  AlertTriangle, Lightbulb, Trash2, Droplets, HelpCircle,
-  CheckCircle, Clock, XCircle, Shield
-} from 'lucide-react';
 
 /* ── Category config ─────────────────────────────────────── */
 const CATEGORY_CFG = {
-  pothole:     { label: 'Pothole',       Icon: AlertTriangle, iconBg: 'bg-neon-magenta/10 border border-neon-magenta/30', iconColor: 'text-neon-magenta text-glow-magenta' },
-  streetlight: { label: 'Streetlight',   Icon: Lightbulb,     iconBg: 'bg-neon-amber/10 border border-neon-amber/30',     iconColor: 'text-neon-amber text-glow-amber' },
-  garbage:     { label: 'Garbage',       Icon: Trash2,        iconBg: 'bg-neon-emerald/10 border border-neon-emerald/30',   iconColor: 'text-neon-emerald text-glow-emerald' },
-  water_leak:  { label: 'Water Leak',    Icon: Droplets,      iconBg: 'bg-neon-cyan/10 border border-neon-cyan/30',      iconColor: 'text-neon-cyan text-glow-cyan' },
-  other:       { label: 'Other Issue',   Icon: HelpCircle,    iconBg: 'bg-glass-10 border border-white/20',             iconColor: 'text-white/70' },
+  pothole:     { label: 'Pothole',       icon: 'warning',    iconBg: 'bg-error-container text-on-error-container' },
+  streetlight: { label: 'Streetlight',   icon: 'lightbulb',  iconBg: 'bg-surface-variant text-on-surface-variant' },
+  garbage:     { label: 'Garbage',       icon: 'delete',     iconBg: 'bg-secondary-container text-on-secondary-container' },
+  water_leak:  { label: 'Water Leak',    icon: 'water_drop', iconBg: 'bg-primary-container text-on-primary-container' },
+  other:       { label: 'Other Issue',   icon: 'help',       iconBg: 'bg-surface-container-high text-on-surface-variant' },
 };
 
 export function getCategoryConfig(cat) {
@@ -18,51 +14,36 @@ export function getCategoryConfig(cat) {
 }
 
 /* ── Category icon ───────────────────────────────────────── */
-export function CategoryIcon({ category, size = 18 }) {
+export function CategoryIcon({ category, size = 20 }) {
   const cfg = getCategoryConfig(category);
   return (
-    <div className={`w-9 h-9 flex items-center justify-center flex-shrink-0 ${cfg.iconBg}`} style={{ borderRadius: '8px' }}>
-      <cfg.Icon size={size} className={cfg.iconColor} strokeWidth={1.5} />
+    <div className={`w-10 h-10 flex items-center justify-center flex-shrink-0 rounded-lg ${cfg.iconBg}`}>
+      <span className="material-symbols-outlined" style={{ fontSize: size }}>{cfg.icon}</span>
     </div>
   );
 }
 
 /* ── Status badge ────────────────────────────────────────── */
 const STATUS_MAP = {
-  open:         { label: 'Open',         className: 'badge-open' },
-  acknowledged: { label: 'Acknowledged', className: 'badge-acknowledged' },
-  resolved:     { label: 'Resolved',     className: 'badge-resolved' },
-  disputed:     { label: 'Disputed',     className: 'badge-disputed' },
+  open:         { label: 'Open',         className: 'bg-surface-variant text-on-surface-variant' },
+  acknowledged: { label: 'Acknowledged', className: 'bg-secondary-container text-on-secondary-container' },
+  resolved:     { label: 'Resolved',     className: 'bg-secondary text-on-secondary' },
+  disputed:     { label: 'Disputed',     className: 'bg-error text-on-error' },
 };
 export function StatusBadge({ status }) {
-  const cfg = STATUS_MAP[status] || { label: status, className: 'badge' };
-  return <span className={cfg.className}>{cfg.label}</span>;
+  const cfg = STATUS_MAP[status] || { label: status, className: 'bg-surface-container text-on-surface-variant' };
+  return <span className={`px-2 py-0.5 rounded font-label-md text-[10px] font-bold uppercase tracking-wider ${cfg.className}`}>{cfg.label}</span>;
 }
 
 /* ── Severity badge ──────────────────────────────────────── */
 const SEV_MAP = {
-  low:    { label: 'Low',    className: 'badge-low' },
-  medium: { label: 'Medium', className: 'badge-medium' },
-  high:   { label: 'High',   className: 'badge-high' },
+  low:    { label: 'Low',    className: 'border border-outline-variant text-on-surface-variant' },
+  medium: { label: 'Medium', className: 'bg-surface-variant text-on-surface-variant' },
+  high:   { label: 'High',   className: 'bg-error-container text-on-error-container' },
 };
 export function SeverityBadge({ severity }) {
-  const cfg = SEV_MAP[severity] || { label: severity, className: 'badge' };
-  return <span className={cfg.className}>{cfg.label}</span>;
-}
-
-/* ── Commitment badge ────────────────────────────────────── */
-const COMMIT_MAP = {
-  pending: { label: 'Pending',   className: 'badge bg-glass-10 text-white/50 border border-white/10', Icon: Clock },
-  honored: { label: 'Honored',   className: 'badge bg-neon-emerald/10 text-neon-emerald border border-neon-emerald/30 shadow-glow-emerald', Icon: CheckCircle },
-  broken:  { label: 'Broken',    className: 'badge bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/30 shadow-glow-magenta',  Icon: XCircle },
-};
-export function CommitmentBadge({ status }) {
-  const cfg = COMMIT_MAP[status] || { label: status, className: 'badge', Icon: Clock };
-  return (
-    <span className={cfg.className}>
-      <cfg.Icon size={10} /> {cfg.label}
-    </span>
-  );
+  const cfg = SEV_MAP[severity] || { label: severity, className: 'border border-outline-variant text-on-surface-variant' };
+  return <span className={`px-2 py-0.5 rounded font-label-md text-[10px] font-bold uppercase tracking-wider ${cfg.className}`}>{cfg.label}</span>;
 }
 
 /* ── Promise Timeline ────────────────────────────────────── */
@@ -70,13 +51,13 @@ export function PromiseTimeline({ report, commitment }) {
   if (!commitment) return null;
 
   const steps = [
-    { label: 'Reported', active: true, icon: CheckCircle },
-    { label: 'Acknowledged', active: ['acknowledged', 'resolved'].includes(report.status), icon: CheckCircle },
-    { label: 'Promised', active: true, icon: Clock, desc: new Date(commitment.etaDate?.toDate?.() || commitment.etaDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) },
+    { label: 'Reported', active: true, icon: 'campaign' },
+    { label: 'Acknowledged', active: ['acknowledged', 'resolved'].includes(report.status), icon: 'mark_email_read' },
+    { label: 'Promised', active: true, icon: 'handshake', desc: new Date(commitment.etaDate?.toDate?.() || commitment.etaDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) },
     { 
       label: commitment.status === 'honored' ? 'Resolved' : commitment.status === 'broken' ? 'Broken' : 'Pending', 
       active: commitment.status !== 'pending', 
-      icon: commitment.status === 'honored' ? CheckCircle : commitment.status === 'broken' ? XCircle : Clock,
+      icon: commitment.status === 'honored' ? 'check_circle' : commitment.status === 'broken' ? 'cancel' : 'pending_actions',
       isOutcome: true,
       status: commitment.status
     }
@@ -84,48 +65,66 @@ export function PromiseTimeline({ report, commitment }) {
 
   const activeSteps = steps.filter(s => s.active).length;
   const progressPct = ((activeSteps - 1) / (steps.length - 1)) * 100;
-  const progressColor = commitment.status === 'broken' ? 'bg-neon-magenta shadow-[0_0_10px_#FF007F]' : 'bg-neon-emerald shadow-[0_0_10px_#10B981]';
+  
+  let progressColor = 'bg-primary';
+  if (commitment.status === 'broken') progressColor = 'bg-error';
+  if (commitment.status === 'honored') progressColor = 'bg-secondary';
 
   return (
-    <div className="mt-4 pt-4 border-t border-white/10" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center gap-1.5 mb-3">
-        <Shield size={14} className="text-neon-cyan" />
-        <h4 className="text-[10px] font-display font-bold text-white uppercase tracking-wider">
-          Accountability Timeline
+    <div className="mt-6 pt-5 border-t border-outline-variant" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-[18px] text-primary">verified_user</span>
+        <h4 className="text-[12px] font-label-md font-bold text-on-surface uppercase tracking-wider">
+          Accountability Tracker
         </h4>
       </div>
       
       {/* Commitment detail */}
-      <div className="bg-glass-10 p-3 mb-5 text-sm border border-white/10 rounded-xl">
-        <p className="font-display font-bold text-white">{commitment.authorityName}</p>
-        <p className="text-white/60 mt-0.5 leading-relaxed text-xs">{commitment.promisedAction}</p>
+      <div className="bg-surface-container-low p-4 mb-6 border border-outline-variant rounded-xl shadow-sm hover:shadow transition-shadow">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="material-symbols-outlined text-[16px] text-primary">account_balance</span>
+          <p className="font-label-md font-bold text-on-surface">{commitment.authorityName}</p>
+        </div>
+        <p className="text-on-surface-variant mt-1 leading-relaxed text-sm pl-6">{commitment.promisedAction}</p>
       </div>
 
-      {/* Tracker bar */}
-      <div className="relative">
-        <div className="absolute top-3 left-[12%] right-[12%] h-0.5 bg-white/5 -z-10" />
+      {/* Tracker bar UI */}
+      <div className="relative mx-4 pb-2">
+        {/* Background track line */}
+        <div className="absolute top-[14px] left-0 right-0 h-1 bg-surface-container-highest rounded-full -z-10" />
+        
+        {/* Animated progress line */}
         <div 
-          className={`absolute top-3 left-[12%] h-0.5 -z-10 transition-all duration-700 ${progressColor}`}
-          style={{ width: `calc(${progressPct}% * 0.76)` }}
+          className={`absolute top-[14px] left-0 h-1 rounded-full -z-10 transition-all duration-1000 ease-in-out ${progressColor}`}
+          style={{ width: `${progressPct}%` }}
         />
         
-        <div className="flex justify-between relative z-0 px-2">
+        <div className="flex justify-between relative z-0">
           {steps.map((step, i) => {
-            const colorClass = !step.active ? 'bg-background text-white/20 border-white/10' : 
-                               step.isOutcome && step.status === 'broken' ? 'bg-background text-neon-magenta border-neon-magenta shadow-[0_0_8px_#FF007F_inset]' :
-                               step.isOutcome && step.status === 'honored' ? 'bg-background text-neon-emerald border-neon-emerald shadow-[0_0_8px_#10B981_inset]' :
-                               'bg-background text-neon-cyan border-neon-cyan shadow-[0_0_8px_#00F0FF_inset]';
-                               
+            const isCompleted = step.active;
+            const isCurrent = isCompleted && (i === activeSteps - 1);
+            
+            let colorClass = 'bg-surface-container-lowest text-outline border-outline-variant';
+            if (isCompleted) {
+              if (step.isOutcome && step.status === 'broken') {
+                colorClass = 'bg-error text-on-error border-error shadow-sm';
+              } else if (step.isOutcome && step.status === 'honored') {
+                colorClass = 'bg-secondary text-on-secondary border-secondary shadow-sm';
+              } else {
+                colorClass = 'bg-primary text-on-primary border-primary shadow-sm';
+              }
+            }
+
             return (
-              <div key={i} className="flex flex-col items-center w-16">
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mb-1.5 ${colorClass}`}>
-                  <step.icon size={11} strokeWidth={2.5} />
+              <div key={i} className="flex flex-col items-center w-20 transform transition-transform duration-300 hover:-translate-y-1">
+                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center mb-2 transition-colors duration-500 ${colorClass} ${isCurrent ? 'animate-pulse ring-4 ring-primary/20' : ''}`}>
+                  <span className="material-symbols-outlined text-[16px]">{step.icon}</span>
                 </div>
-                <span className={`text-[9px] font-display tracking-widest uppercase text-center font-bold ${step.active ? 'text-white' : 'text-white/30'}`}>
+                <span className={`text-[10px] font-label-md tracking-wide uppercase text-center font-bold ${isCompleted ? 'text-on-surface' : 'text-outline'}`}>
                   {step.label}
                 </span>
                 {step.desc && (
-                  <span className="text-[9px] font-sans text-white/40 mt-0.5">{step.desc}</span>
+                  <span className="text-[10px] font-body-md text-on-surface-variant mt-0.5">{step.desc}</span>
                 )}
               </div>
             );
@@ -151,24 +150,24 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   return (
     <CardEl
       onClick={onClick}
-      className={`w-full text-left ${onClick ? 'glass-panel-hover' : 'glass-panel'} p-4 block`}
+      className={`w-full text-left bg-surface-container-lowest border border-outline-variant rounded-xl p-5 block transition-all duration-300 hover:shadow-md ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4">
         <CategoryIcon category={report.category} />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className="font-display font-bold text-[10px] uppercase tracking-wider text-white">{cfg.label}</span>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-label-md font-bold text-[12px] uppercase tracking-wider text-on-surface">{cfg.label}</span>
             <StatusBadge status={report.status} />
             <SeverityBadge severity={report.severity} />
           </div>
 
-          <p className="text-xs text-white/70 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-on-surface-variant line-clamp-2 leading-relaxed">
             {report.summary || report.description}
           </p>
 
           {!compact && (
-            <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40 font-sans">
+            <div className="flex items-center gap-3 mt-3 text-[11px] text-on-surface-variant font-body-md">
               <span>{date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
               {report.wardId && report.wardId !== 'unknown' && (
                 <span>· {report.wardId.replace(/ward(\d+)/i, 'Ward $1')}</span>
@@ -180,9 +179,8 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
           )}
 
           {report.confirmations > 0 && !compact && (
-            <div className="mt-3 bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan text-[10px] font-display uppercase tracking-widest font-bold flex items-center gap-1.5 w-max shadow-glow-cyan"
-                 style={{ borderRadius: '8px', padding: '6px 10px' }}>
-              <CheckCircle size={12} strokeWidth={2} /> 
+            <div className="mt-3 bg-secondary-container text-on-secondary-container text-[11px] font-label-md uppercase tracking-widest font-bold flex items-center gap-1.5 w-max px-3 py-1.5 rounded-lg shadow-sm">
+              <span className="material-symbols-outlined text-[14px]">check_circle</span> 
               {Math.floor(report.confirmations)} Verified
             </div>
           )}
@@ -192,8 +190,7 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
           <img
             src={report.imageUrl}
             alt="Report photo"
-            className="w-14 h-14 object-cover border border-white/20 flex-shrink-0"
-            style={{ borderRadius: '10px' }}
+            className="w-16 h-16 object-cover border border-outline-variant flex-shrink-0 rounded-xl"
           />
         )}
       </div>
@@ -202,19 +199,19 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
         <div onClick={e => e.stopPropagation()}>
           <PromiseTimeline report={report} commitment={commitment} />
           {commitment.resolutionImageUrl && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <h4 className="text-[10px] font-display font-bold text-neon-emerald uppercase tracking-wider flex items-center gap-1.5 shadow-glow-emerald"
-                  style={{ marginBottom: '12px' }}>
-                <CheckCircle size={12} strokeWidth={2} /> Proof of Resolution
+            <div className="mt-6 pt-5 border-t border-outline-variant">
+              <h4 className="text-[12px] font-label-md font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5"
+                  style={{ marginBottom: '16px' }}>
+                <span className="material-symbols-outlined text-[16px]">check_circle</span> Proof of Resolution
               </h4>
-              <div className="grid grid-cols-2 gap-2 h-32 sm:h-40">
-                <div className="relative border border-white/10 group overflow-hidden" style={{ borderRadius: '10px' }}>
-                  <span className="absolute top-2 left-2 bg-background/80 text-white/50 text-[9px] uppercase px-1.5 py-0.5 font-display font-bold tracking-widest backdrop-blur-sm z-10 rounded">Before</span>
-                  <img src={report.imageUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400'} className="w-full h-full object-cover" alt="Before" />
+              <div className="grid grid-cols-2 gap-3 h-32 sm:h-48">
+                <div className="relative border border-outline-variant group overflow-hidden rounded-xl bg-surface-container-low">
+                  <span className="absolute top-2 left-2 bg-surface-container/80 text-on-surface text-[10px] uppercase px-2 py-1 font-label-md font-bold tracking-widest backdrop-blur-sm z-10 rounded">Before</span>
+                  <img src={report.imageUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400'} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Before" />
                 </div>
-                <div className="relative border border-neon-emerald group overflow-hidden shadow-[0_0_15px_rgba(16,185,129,0.3)]" style={{ borderRadius: '10px' }}>
-                  <span className="absolute top-2 left-2 bg-neon-emerald text-background text-[9px] uppercase px-1.5 py-0.5 font-display font-bold tracking-widest shadow-sm z-10 rounded">After</span>
-                  <img src={commitment.resolutionImageUrl} className="w-full h-full object-cover" alt="After" />
+                <div className="relative border border-secondary group overflow-hidden shadow-sm rounded-xl bg-secondary-container">
+                  <span className="absolute top-2 left-2 bg-secondary text-on-secondary text-[10px] uppercase px-2 py-1 font-label-md font-bold tracking-widest shadow-sm z-10 rounded">After</span>
+                  <img src={commitment.resolutionImageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="After" />
                 </div>
               </div>
             </div>
