@@ -64,7 +64,11 @@ function ClusterMarkers({ reports }) {
         <Marker key={`cluster-${cluster.id}`} position={[lat, lng]} icon={icon}
           eventHandlers={{
             click: () => {
-              if (map) map.setView([lat, lng], Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20), { animate: false });
+              if (map && map._container && map._mapPane) {
+                try {
+                  map.setView([lat, lng], Math.min(supercluster.getClusterExpansionZoom(cluster.id), 20), { animate: false });
+                } catch(e) {}
+              }
             }
           }}
         />
@@ -100,36 +104,46 @@ function DynamicMapController({ reports, userDoc }) {
   const map = useMap();
 
   useEffect(() => {
+    let isMounted = true;
+
     // Defer until the map panes are fully initialized
     const timer = setTimeout(() => {
+      if (!isMounted) return;
       try {
-        if (!map || !map._panes) return;
+        if (!map || !map._container || !map._mapPane) return;
+        
+        const opts = { animate: false, duration: 0 };
         if (userDoc?.lat && userDoc?.lng) {
-          map.setView([userDoc.lat, userDoc.lng], 13, { animate: false });
+          map.setView([userDoc.lat, userDoc.lng], 13, opts);
         } else {
           const validReports = reports?.filter(r => r.lat && r.lng) || [];
           if (validReports.length > 0) {
             const bounds = L.latLngBounds(validReports.map(r => [r.lat, r.lng]));
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: false });
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: false, duration: 0 });
           } else if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
               pos => {
                 try {
-                  if (map && map._panes) map.setView([pos.coords.latitude, pos.coords.longitude], 13, { animate: false });
+                  if (isMounted && map && map._container && map._mapPane) {
+                    map.setView([pos.coords.latitude, pos.coords.longitude], 13, opts);
+                  }
                 } catch {}
               },
               () => {}
             );
           } else {
-            map.setView([11.0168, 76.9558], 12, { animate: false });
+            map.setView([11.0168, 76.9558], 12, opts);
           }
         }
       } catch (e) {
         // Map not ready yet, silently skip
       }
-    }, 200);
+    }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [reports, map, userDoc]);
 
   return null;
