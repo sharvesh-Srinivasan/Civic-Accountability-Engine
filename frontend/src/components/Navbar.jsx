@@ -1,176 +1,111 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, MapPin, Plus, FileText, LogOut, Menu, X, ChevronDown, Trophy } from 'lucide-react';
 
 export default function Navbar() {
   const { user, userDoc, isAuthority, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
-    setMenuOpen(false);
   };
 
   const isActive = (path) => location.pathname === path;
 
-  return (
-    <header className="sticky top-0 z-50 bg-white border-b border-border">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center h-16 gap-6">
+  // Wait to load fully before rendering auth-dependent nav items
+  if (user === undefined) return null;
+  if (location.pathname === '/login' || location.pathname === '/onboarding') return null;
 
-          {/* Logo */}
+  return (
+    <>
+      {/* Mobile TopNav (Visible only on md:hidden) */}
+      <header className="md:hidden bg-surface-container-lowest dark:bg-surface-container-low text-primary dark:text-primary-fixed-dim w-full h-16 border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-mobile fixed top-0 z-50">
+        <div className="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">
+          CivicConnect
+        </div>
+        <div className="flex gap-4">
+          <span className="material-symbols-outlined cursor-pointer active:opacity-80">account_circle</span>
+          <span className="material-symbols-outlined cursor-pointer active:opacity-80">notifications</span>
+        </div>
+      </header>
+
+      {/* SideNavBar (Hidden on Mobile) */}
+      <nav className="hidden md:flex bg-surface-container-low dark:bg-surface-container-lowest text-primary dark:text-primary-fixed-dim h-full w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex-col py-stack-lg z-50">
+        <div className="px-gutter mb-stack-lg">
+          <div className="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim mb-2">
+            CivicConnect
+          </div>
+          {user ? (
+            <div className="flex items-center gap-3 mt-4">
+              <div className="w-10 h-10 rounded-full border border-outline-variant flex items-center justify-center bg-primary text-on-primary font-bold">
+                {(user.displayName || user.email || 'U')[0].toUpperCase()}
+              </div>
+              <div>
+                <p className="font-label-md text-label-md truncate max-w-[120px]">{user.displayName || 'Citizen'}</p>
+                {isAuthority && <p className="font-caption text-caption text-secondary">Authority</p>}
+              </div>
+            </div>
+          ) : (
+            <div className="font-caption text-caption text-outline mt-4">Guest Mode</div>
+          )}
+        </div>
+        
+        <div className="flex-1 px-4 font-label-md text-label-md overflow-y-auto">
+          {/* Active Tab: Dashboard */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 flex-shrink-0 group"
-            onClick={() => setMenuOpen(false)}
+            className={`${isActive('/') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed dark:text-on-primary-container' : 'text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
           >
-            <div className="w-8 h-8 bg-navy-600 rounded flex items-center justify-center
-                            group-hover:bg-navy-700 transition-colors">
-              <Shield size={16} className="text-white" />
-            </div>
-            <span className="font-serif font-semibold text-navy-800 text-lg tracking-tight">
-              CivicWatch
-            </span>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>dashboard</span>
+            Dashboard
           </Link>
 
-          {/* Divider */}
-          <div className="hidden md:block h-5 w-px bg-border" />
-
-          {/* Desktop nav links */}
-          <nav className="hidden md:flex items-center gap-1 flex-1">
+          {user && (
             <Link
-              to="/"
-              className={isActive('/') ? 'nav-link-active' : 'nav-link'}
+              to="/my-reports"
+              className={`${isActive('/my-reports') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
             >
-              Dashboard
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/my-reports') ? "'FILL' 1" : "" }}>assignment</span>
+              My Reports
             </Link>
-            {user && (
-              <Link
-                to="/my-reports"
-                className={isActive('/my-reports') ? 'nav-link-active' : 'nav-link'}
-              >
-                My Reports
-              </Link>
-            )}
-            {isAuthority && (
-              <Link
-                to="/authority"
-                className={isActive('/authority') ? 'nav-link-active' : 'nav-link'}
-              >
-                Authority View
-              </Link>
-            )}
-          </nav>
+          )}
 
-          {/* Right side actions */}
-          <div className="hidden md:flex items-center gap-3 ml-auto">
+          {isAuthority && (
+            <Link
+              to="/authority"
+              className={`${isActive('/authority') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/authority') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
+              Authority Portal
+            </Link>
+          )}
+
+          <div className="mt-stack-lg px-4">
             {user ? (
-              <>
-                {/* User info */}
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-7 h-7 rounded-full bg-navy-100 flex items-center
-                                  justify-center text-navy-700 font-semibold text-xs">
-                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                  </div>
-                  <span className="text-ink-600 font-medium max-w-[120px] truncate">
-                    {user.displayName || user.email}
-                  </span>
-                  {isAuthority && (
-                    <span className="badge badge-acknowledged text-xs">Authority</span>
-                  )}
-                  {!isAuthority && userDoc && (
-                    <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full text-xs font-semibold ml-2 border border-amber-200">
-                      <Trophy size={12} />
-                      {userDoc.civicPoints >= 200 ? 'Gold Hero' : userDoc.civicPoints >= 50 ? 'Silver Advocate' : 'Bronze Citizen'} ({userDoc.civicPoints || 0})
-                    </div>
-                  )}
-                </div>
-                <div className="h-4 w-px bg-border" />
-                {/* Report CTA — always visible */}
-                <Link to="/report/new" className="btn-primary btn-sm">
-                  <Plus size={14} /> Report Issue
-                </Link>
-                <button onClick={handleLogout} className="btn-ghost btn-sm">
-                  <LogOut size={14} /> Sign out
-                </button>
-              </>
+              <Link to="/report/new" className="w-full bg-primary text-on-primary h-12 rounded flex items-center justify-center gap-2 font-label-md text-label-md hover:bg-primary-container transition-colors">
+                <span className="material-symbols-outlined">add</span>
+                Report Issue
+              </Link>
             ) : (
-              <>
-                <Link to="/login" className="nav-link">Sign in</Link>
-                <Link to="/report/new" className="btn-primary btn-sm">
-                  <Plus size={14} /> Report an Issue
-                </Link>
-              </>
+              <Link to="/login" className="w-full bg-primary text-on-primary h-12 rounded flex items-center justify-center gap-2 font-label-md text-label-md hover:bg-primary-container transition-colors">
+                <span className="material-symbols-outlined">login</span>
+                Sign In
+              </Link>
             )}
           </div>
-
-          {/* Mobile: Report CTA + hamburger */}
-          <div className="md:hidden flex items-center gap-2 ml-auto">
-            <Link to="/report/new" className="btn-primary btn-sm">
-              <Plus size={14} />
-              <span className="sr-only">Report</span>
-            </Link>
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 text-ink-500 hover:text-ink-800 hover:bg-canvas rounded-md transition-colors"
-              aria-label="Toggle menu"
-            >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </div>
+        
+        {user && (
+          <div className="px-4 mt-auto font-label-md text-label-md border-t border-outline-variant pt-stack-md">
+            <button onClick={handleLogout} className="w-full text-error hover:bg-error-container flex items-center gap-4 px-4 py-3 cursor-pointer rounded-lg mb-1 transition-all">
+              <span className="material-symbols-outlined">logout</span>
+              Sign Out
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-border bg-white animate-fade-in">
-          <nav className="max-w-6xl mx-auto px-4 py-3 space-y-1">
-            <Link to="/" onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/') ? 'bg-navy-50 text-navy-700' : 'text-ink-600 hover:bg-canvas'}`}>
-              <MapPin size={16} /> Dashboard
-            </Link>
-            {user && (
-              <Link to="/my-reports" onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/my-reports') ? 'bg-navy-50 text-navy-700' : 'text-ink-600 hover:bg-canvas'}`}>
-                <FileText size={16} /> My Reports
-              </Link>
-            )}
-            {isAuthority && (
-              <Link to="/authority" onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive('/authority') ? 'bg-navy-50 text-navy-700' : 'text-ink-600 hover:bg-canvas'}`}>
-                <Shield size={16} /> Authority View
-              </Link>
-            )}
-            <div className="divider my-2" />
-            {user ? (
-              <>
-                <div className="px-3 py-2 text-sm text-ink-500">
-                  Signed in as <span className="font-medium text-ink-700">{user.displayName || user.email}</span>
-                </div>
-                <Link to="/report/new" onClick={() => setMenuOpen(false)} className="btn-primary w-full justify-center text-sm">
-                  <Plus size={14} /> Report an Issue
-                </Link>
-                <button onClick={handleLogout} className="btn-ghost w-full justify-center text-sm text-ink-500 mt-1">
-                  <LogOut size={14} /> Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary w-full justify-center text-sm">
-                  Sign in
-                </Link>
-                <Link to="/report/new" onClick={() => setMenuOpen(false)} className="btn-primary w-full justify-center text-sm mt-1">
-                  <Plus size={14} /> Report an Issue
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      )}
-    </header>
+        )}
+      </nav>
+    </>
   );
 }

@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Auth helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAuthority() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'authority';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth.uid == userId;
+    }
+    
+    // Wards collection (readonly publicly, admin writes)
+    match /wards/{wardId} {
+      allow read: if true;
+      allow write: if false; // Only written via backend/admin script
+    }
+    
+    // WardStats (readonly publicly, updated via cloud functions/backend)
+    match /wardStats/{statId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Reports collection
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if isSignedIn() 
+                    && request.resource.data.reporterId == request.auth.uid
+                    && request.resource.data.severity in ['low', 'medium', 'high']
+                    && request.resource.data.status == 'open';
+      // Only the reporter can update (e.g., add photos), or an authority can update status
+      allow update: if (isSignedIn() && resource.data.reporterId == request.auth.uid) || isAuthority();
+      allow delete: if false; // soft delete only, or backend only
+    }
+    
+    // Commitments
+    match /commitments/{commitmentId} {
+      allow read: if true;
+      // Only authorities can create or update commitments
+      allow write: if isAuthority();
+    }
+    
+    // Fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@googlemaps/react-wrapper": "^1.2.0",
     "@tailwindcss/forms": "^0.5.11",
     "autoprefixer": "^10.5.1",

@@ -1,15 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import api from '../lib/api';
-import { CommitmentBadge, StatusBadge, SeverityBadge, CategoryIcon } from '../components/ReportCard';
-import { Shield, Plus, CheckCircle, RefreshCw, Clock, XCircle, Calendar, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-
-function Skeleton({ h = 'h-14', className = '' }) {
-  return <div className={`skeleton ${h} w-full rounded ${className}`} />;
-}
 
 function formatDate(val) {
   try {
@@ -26,12 +20,10 @@ export default function AuthorityView() {
   const [form, setForm] = useState({ authorityName: '', promisedAction: '', etaDate: '' });
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [tab, setTab] = useState('open'); // 'open' | 'all' | 'commitments'
+  const [tab, setTab] = useState('open');
 
   const [insight, setInsight] = useState(null);
-
-  // Feature 1: Resolution Photo Upload
-  const [resolving, setResolving] = useState(null); // holds commitment to resolve
+  const [resolving, setResolving] = useState(null);
   const [resPhotoFile, setResPhotoFile] = useState(null);
   const [resPhotoPreview, setResPhotoPreview] = useState('');
   const [isResolving, setIsResolving] = useState(false);
@@ -50,7 +42,6 @@ export default function AuthorityView() {
       setReports(fetchedReports);
       setCommitments(fetchedCommitments);
 
-      // Feature 5: AI Prioritization Insight for Top Issue
       const ranked = fetchedReports.filter(r => r.status === 'open' || r.status === 'acknowledged').map(r => {
         let daysOpen = 0;
         try {
@@ -67,9 +58,8 @@ export default function AuthorityView() {
             severity: ranked[0].severity, daysOpen: ranked[0].daysOpen, count: 1, category: ranked[0].category
           });
           setInsight({ reportId: ranked[0].id, text: res.data.insight });
-        } catch { console.error("Failed to fetch insight"); }
+        } catch {}
       }
-
     } catch { toast.error('Failed to load data'); }
     finally { setLoading(false); }
   };
@@ -87,7 +77,7 @@ export default function AuthorityView() {
       setForm({ authorityName: '', promisedAction: '', etaDate: '' });
       await load();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed');
+      toast.error('Failed to create commitment');
     } finally { setSubmitting(false); }
   };
 
@@ -106,53 +96,18 @@ export default function AuthorityView() {
     e.preventDefault();
     if (!resolving) return;
     setIsResolving(true);
-    let resolutionImageUrl = '';
-    
-    // If they provided a photo, upload it (mock for now or actually upload if storage is there)
-    if (resPhotoFile) {
-      try {
-        const { storage } = await import('../firebase');
-        const { ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
-        if (storage) {
-          const storageRef = ref(storage, `resolutions/${Date.now()}_${resPhotoFile.name}`);
-          resolutionImageUrl = await new Promise((resolve, reject) => {
-            const task = uploadBytesResumable(storageRef, resPhotoFile);
-            task.on('state_changed', null, reject, async () => resolve(await getDownloadURL(task.snapshot.ref)));
-          });
-        }
-      } catch (err) {
-        toast.error('Failed to upload photo');
-        setIsResolving(false);
-        return;
-      }
-    }
-
     try {
-      await api.post(`/api/commitments/${resolving.id}/resolve`, { resolutionImageUrl });
+      await api.post(`/api/commitments/${resolving.id}/resolve`, { resolutionImageUrl: '' });
       toast.success('Commitment marked as honored');
       setResolving(null);
       setResPhotoFile(null);
       setResPhotoPreview('');
       await load();
-    } catch (err) {
-      toast.error('Failed to resolve');
-    } finally {
-      setIsResolving(false);
-    }
+    } catch { toast.error('Failed to resolve'); }
+    finally { setIsResolving(false); }
   };
 
-  // Calculate ranked reports for priority queue
-  const openReports = reports.filter(r => r.status === 'open' || r.status === 'acknowledged').map(r => {
-    let daysOpen = 0;
-    try {
-      const d = r.createdAt?.toDate?.() ? r.createdAt.toDate() : new Date(r.createdAt);
-      daysOpen = Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 3600 * 24)));
-    } catch {}
-    const sevScore = r.severity === 'high' ? 30 : r.severity === 'medium' ? 15 : 0;
-    return { ...r, urgencyScore: sevScore + (daysOpen * 2) };
-  }).sort((a, b) => b.urgencyScore - a.urgencyScore);
-
-  // Feature 6: Predictive Overdue Risk calculation
+  const openReports = reports.filter(r => r.status === 'open' || r.status === 'acknowledged');
   const authorityStats = commitments.reduce((acc, c) => {
     if (!acc[c.authorityName]) acc[c.authorityName] = { total: 0, broken: 0, honored: 0, pending: 0 };
     acc[c.authorityName].total += 1;
@@ -167,357 +122,213 @@ export default function AuthorityView() {
   const tabData = tab === 'open' ? openReports : tab === 'all' ? reports : commitments;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10 animate-fade-in">
-
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8 gap-4">
+    <main className="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-20 md:pt-margin-desktop bg-background text-on-background min-h-screen font-body-md">
+      
+      <header className="mb-stack-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Shield size={15} className="text-navy-500" />
-            <p className="section-label">Authority Dashboard</p>
+          <div className="flex items-center gap-2 mb-2 text-primary">
+            <span className="material-symbols-outlined text-[14px]">admin_panel_settings</span>
+            <p className="font-label-md text-label-md uppercase tracking-widest text-[10px]">Authority Dashboard</p>
           </div>
-          <h1 className="font-serif text-2xl font-semibold text-ink-900">Commitment Manager</h1>
-          <p className="text-sm text-ink-500 mt-0.5">
-            Make promises to citizens and let the system hold you accountable.
-          </p>
+          <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Commitment Manager</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1">Make promises to citizens and let the system hold you accountable.</p>
         </div>
-        <button onClick={handleCheck} disabled={checking} className="btn-secondary flex-shrink-0">
-          {checking
-            ? <><span className="w-4 h-4 border-2 border-navy-200 border-t-navy-600 rounded-full animate-spin" /> Checking…</>
-            : <><RefreshCw size={15} /> Run Commitment Check</>
-          }
+        <button onClick={handleCheck} disabled={checking} className="bg-surface-container-low border border-outline text-on-surface h-12 px-6 rounded font-label-md text-label-md hover:bg-surface-variant transition-colors inline-flex items-center gap-2">
+          {checking ? <span className="material-symbols-outlined animate-spin text-[20px]">sync</span> : <span className="material-symbols-outlined text-[20px]">refresh</span>}
+          Run Check
         </button>
-      </div>
+      </header>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total reports',  val: reports.length,                              color: '' },
-          { label: 'Need action',    val: openReports.length,                          color: 'text-amber-600' },
-          { label: 'Honored',        val: commitments.filter(c=>c.status==='honored').length, color: 'text-teal-600' },
-          { label: 'Broken',         val: commitments.filter(c=>c.status==='broken').length,  color: 'text-amber-700' },
-        ].map(k => (
-          <div key={k.label} className="card p-4 text-center">
-            <div className={`stat-number ${k.color}`}>{loading ? '—' : k.val}</div>
-            <div className="stat-unit">{k.label}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-stack-md mb-stack-lg">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-gutter flex flex-col justify-between">
+          <span className="font-label-md text-label-md text-on-surface-variant mb-2">Total Reports</span>
+          <div className="font-display-lg text-display-lg text-on-surface">{reports.length}</div>
+        </div>
+        <div className="bg-surface-container-lowest border border-primary-fixed-dim rounded-xl p-gutter flex flex-col justify-between">
+          <span className="font-label-md text-label-md text-primary mb-2">Need Action</span>
+          <div className="font-display-lg text-display-lg text-primary">{openReports.length}</div>
+        </div>
+        <div className="bg-secondary-container border border-secondary-fixed-dim rounded-xl p-gutter flex flex-col justify-between text-on-secondary-container">
+          <span className="font-label-md text-label-md mb-2">Honored</span>
+          <div className="font-display-lg text-display-lg">{commitments.filter(c=>c.status==='honored').length}</div>
+        </div>
+        <div className="bg-error-container border border-error rounded-xl p-gutter flex flex-col justify-between text-on-error-container">
+          <span className="font-label-md text-label-md mb-2">Broken</span>
+          <div className="font-display-lg text-display-lg">{commitments.filter(c=>c.status==='broken').length}</div>
+        </div>
       </div>
 
-      {/* Broken commitments callout */}
-      {!loading && commitments.filter(c => c.status === 'broken').length > 0 && (
-        <div className="warn-bar mb-4">
-          <XCircle size={16} className="text-amber-500 flex-shrink-0" />
-          <span>
-            <strong>{commitments.filter(c => c.status === 'broken').length}</strong> commitment
-            {commitments.filter(c=>c.status==='broken').length > 1 ? 's have' : ' has'} passed
-            their deadline without resolution — these are now publicly marked as broken.
-          </span>
+      {commitments.filter(c => c.status === 'broken').length > 0 && (
+        <div className="bg-error-container text-on-error-container p-4 rounded-xl mb-6 flex items-center gap-3 border border-error font-body-md text-body-md">
+          <span className="material-symbols-outlined">cancel</span>
+          <span><strong>{commitments.filter(c => c.status === 'broken').length}</strong> commitments have passed their deadline without resolution — these are publicly marked as broken.</span>
         </div>
       )}
 
-      {/* Feature 6: Predictive Insights / Overdue Risk */}
-      {!loading && riskyAuthorities.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-          <div className="text-red-500 mt-0.5"><AlertTriangle size={18} /></div>
+      {riskyAuthorities.length > 0 && (
+        <div className="bg-surface-variant text-on-surface-variant p-4 rounded-xl mb-8 flex items-start gap-4 border border-outline-variant font-body-md text-body-md">
+          <span className="material-symbols-outlined text-primary mt-1">warning</span>
           <div>
-            <h3 className="text-red-800 font-semibold text-sm">High Overdue Risk Detected</h3>
-            <p className="text-red-700 text-xs mt-1 leading-relaxed">
-              Based on historical completion rates, commitments made by 
-              {riskyAuthorities.map((a, i) => (
-                <span key={a.name} className="font-semibold"> {a.name} ({a.rate}% failure rate){i < riskyAuthorities.length - 1 ? ',' : ''}</span>
-              ))} 
-              are at high risk of being broken. Consider re-evaluating SLA targets or allocating more resources.
-            </p>
+            <h3 className="font-label-md text-label-md text-primary mb-1">High Overdue Risk Detected</h3>
+            <p className="text-sm">Based on historical data, commitments by {riskyAuthorities.map(a=>a.name).join(', ')} are at high risk of being broken.</p>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center border-b border-border mb-6 gap-1">
+      <div className="flex gap-2 border-b border-outline-variant mb-6 overflow-x-auto">
         {[
-          { val: 'open',        label: `Priority Queue (${openReports.length})` },
-          { val: 'all',         label: `All reports (${reports.length})` },
-          { val: 'commitments', label: `Commitments (${commitments.length})` },
+          { id: 'open', label: `Priority Queue (${openReports.length})` },
+          { id: 'all', label: `All Reports (${reports.length})` },
+          { id: 'commitments', label: `Commitments (${commitments.length})` }
         ].map(t => (
-          <button
-            key={t.val}
-            onClick={() => setTab(t.val)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px
-              ${tab === t.val
-                ? 'border-navy-600 text-navy-700'
-                : 'border-transparent text-ink-400 hover:text-ink-700'
-              }`}
-          >
+          <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-3 font-label-md text-label-md border-b-2 whitespace-nowrap transition-colors ${tab === t.id ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}`}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Feature 5: Top Priority AI Justification */}
-      {!loading && tab === 'open' && insight && openReports.length > 0 && (
-        <div className="bg-navy-900 text-white rounded-lg p-5 mb-6 shadow-sm border border-navy-800 flex items-start gap-4">
-          <div className="w-10 h-10 rounded bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-500/30">
-            <Shield size={18} />
-          </div>
+      {tab === 'open' && insight && openReports.length > 0 && (
+        <div className="bg-primary-fixed text-on-primary-fixed p-6 rounded-xl mb-8 flex items-start gap-4 shadow-sm border border-primary-fixed-dim">
+          <span className="material-symbols-outlined text-[32px] text-primary">auto_awesome</span>
           <div>
-            <p className="text-navy-300 text-xs font-semibold uppercase tracking-wider mb-1">Top Priority Issue Recommendation</p>
-            <p className="font-serif text-lg leading-relaxed">{insight.text}</p>
+            <p className="font-label-md text-label-md mb-2 uppercase tracking-wider text-[10px] font-bold text-primary">AI Priority Recommendation</p>
+            <p className="font-body-md text-body-md">{insight.text}</p>
           </div>
         </div>
       )}
 
-      {/* Content */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1,2,3].map(i => <Skeleton key={i} h="h-16" />)}
-        </div>
-
-      ) : tab !== 'commitments' ? (
-        /* Reports table */
-        tabData.length === 0 ? (
-          <div className="card p-10 text-center">
-            <CheckCircle size={28} className="text-teal-500 mx-auto mb-2" />
-            <p className="text-ink-500 text-sm">No reports to show here.</p>
-          </div>
-        ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-canvas text-left">
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Issue</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden sm:table-cell">Ward</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden md:table-cell">Date</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {tabData.map(r => {
+      {/* Table */}
+      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl mb-stack-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left font-body-md text-body-md">
+            <thead className="bg-surface-container-low font-label-md text-label-md text-on-surface-variant border-b border-outline-variant">
+              <tr>
+                {tab !== 'commitments' ? (
+                  <>
+                    <th className="py-3 px-gutter font-normal">Issue</th>
+                    <th className="py-3 px-gutter font-normal hidden sm:table-cell">Ward</th>
+                    <th className="py-3 px-gutter font-normal">Status</th>
+                    <th className="py-3 px-gutter font-normal text-right">Action</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="py-3 px-gutter font-normal">Authority</th>
+                    <th className="py-3 px-gutter font-normal">Promise</th>
+                    <th className="py-3 px-gutter font-normal hidden sm:table-cell">ETA</th>
+                    <th className="py-3 px-gutter font-normal">Status</th>
+                    <th className="py-3 px-gutter font-normal text-right">Action</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {loading ? (
+                <tr><td colSpan="5" className="py-8 text-center text-on-surface-variant">Loading...</td></tr>
+              ) : tabData.length === 0 ? (
+                <tr><td colSpan="5" className="py-8 text-center text-on-surface-variant">No items found.</td></tr>
+              ) : tab !== 'commitments' ? (
+                tabData.map(r => {
                   const hasCommitment = commitments.some(c => c.reportId === r.id);
                   return (
-                    <tr key={r.id} className="hover:bg-canvas transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <CategoryIcon category={r.category} size={15} />
-                          <div>
-                            <p className="font-medium text-ink-800 capitalize">
-                              {r.category?.replace('_', ' ')}
-                            </p>
-                            <p className="text-xs text-ink-400 line-clamp-1 max-w-[200px]">
-                              {r.summary || r.description}
-                            </p>
-                          </div>
+                    <tr key={r.id} className="hover:bg-surface-container-low transition-colors">
+                      <td className="py-4 px-gutter">
+                        <p className="font-label-md text-on-surface capitalize">{r.category?.replace('_', ' ')}</p>
+                        <p className="text-xs text-on-surface-variant line-clamp-1 max-w-xs">{r.summary || r.description}</p>
+                      </td>
+                      <td className="py-4 px-gutter hidden sm:table-cell capitalize">{r.wardId?.replace(/ward(\d+)/i, 'Ward $1')}</td>
+                      <td className="py-4 px-gutter">
+                        <div className="flex gap-2">
+                          <span className="bg-surface-variant text-on-surface-variant px-2 py-1 rounded text-xs font-bold uppercase">{r.status}</span>
+                          <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${r.severity === 'high' ? 'bg-error-container text-on-error-container' : 'bg-surface-variant text-on-surface-variant'}`}>{r.severity}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-ink-500 hidden sm:table-cell capitalize">
-                        {r.wardId?.replace(/ward(\d+)/i, 'Ward $1')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge status={r.status} />
-                          <SeverityBadge severity={r.severity} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-ink-400 text-xs hidden md:table-cell">
-                        {formatDate(r.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="py-4 px-gutter text-right">
                         {hasCommitment ? (
-                          <span className="text-xs text-teal-600 flex items-center gap-1 justify-end">
-                            <CheckCircle size={11} /> Committed
-                          </span>
-                        ) : (tab === 'open' || r.status === 'open' || r.status === 'acknowledged') ? (
-                          <button
-                            onClick={() => setSelected(r)}
-                            className="btn-primary btn-sm"
-                          >
-                            <Plus size={13} /> Add
+                          <span className="text-secondary font-bold text-xs uppercase tracking-widest inline-flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Committed</span>
+                        ) : (
+                          <button onClick={() => setSelected(r)} className="bg-primary text-on-primary px-4 py-2 rounded text-xs font-bold uppercase hover:bg-primary-container inline-flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px]">add</span> Make Promise
                           </button>
-                        ) : null}
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )
-      ) : (
-        /* Commitments list */
-        commitments.length === 0 ? (
-          <div className="card p-10 text-center">
-            <Clock size={28} className="text-ink-300 mx-auto mb-2" />
-            <p className="text-sm text-ink-400">No commitments created yet.</p>
-          </div>
-        ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-canvas text-left">
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Authority</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Promise</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider hidden sm:table-cell">ETA</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-ink-400 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {commitments.map(c => (
-                  <tr key={c.id} className={`hover:bg-canvas transition-colors ${c.status === 'broken' ? 'bg-amber-50/40' : ''}`}>
-                    <td className="px-4 py-3 font-medium text-ink-700">{c.authorityName}</td>
-                    <td className="px-4 py-3 text-ink-500 max-w-[260px]">
-                      <p className="line-clamp-2">{c.promisedAction}</p>
+                  )
+                })
+              ) : (
+                commitments.map(c => (
+                  <tr key={c.id} className="hover:bg-surface-container-low transition-colors">
+                    <td className="py-4 px-gutter font-label-md text-on-surface">{c.authorityName}</td>
+                    <td className="py-4 px-gutter text-on-surface-variant text-sm max-w-xs"><p className="line-clamp-2">{c.promisedAction}</p></td>
+                    <td className="py-4 px-gutter text-on-surface-variant hidden sm:table-cell text-sm">{formatDate(c.etaDate)}</td>
+                    <td className="py-4 px-gutter">
+                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${c.status === 'honored' ? 'bg-secondary-container text-on-secondary-container' : c.status === 'broken' ? 'bg-error-container text-on-error-container' : 'bg-surface-variant text-on-surface-variant'}`}>
+                        {c.status}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-400 text-xs hidden sm:table-cell">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={11} /> {formatDate(c.etaDate)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <CommitmentBadge status={c.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="py-4 px-gutter text-right">
                       {c.status === 'pending' && (
-                        <button onClick={() => setResolving(c)} className="btn-secondary btn-sm bg-white">
-                          <CheckCircle size={13} className="text-teal-600" /> Resolve
+                        <button onClick={() => setResolving(c)} className="bg-secondary text-on-secondary px-4 py-2 rounded text-xs font-bold uppercase hover:bg-secondary-fixed inline-flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">check_circle</span> Resolve
                         </button>
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      {/* Commitment modal */}
+      {/* Modals */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center
-                        p-4 bg-ink-900/30 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl border border-border shadow-card-hover
-                          w-full max-w-md animate-slide-up">
-            <div className="px-6 pt-5 pb-4 border-b border-border">
-              <h3 className="font-serif text-lg font-semibold text-ink-900">Add a Commitment</h3>
-              <p className="text-sm text-ink-500 mt-0.5">
-                For: <span className="text-ink-700 capitalize">{selected.category?.replace('_', ' ')}</span>
-                {selected.summary ? ` — ${selected.summary.slice(0, 60)}…` : ''}
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-xl shadow-lg border border-outline-variant overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant bg-surface-container-low">
+              <h3 className="font-headline-md text-headline-md text-on-surface">Add a Commitment</h3>
+              <p className="text-sm text-on-surface-variant mt-1">For: <span className="font-bold capitalize">{selected.category?.replace('_',' ')}</span></p>
             </div>
-
-            {selected.aiResolutionPlan && (
-              <div className="px-6 py-4 bg-navy-50/50 border-b border-border">
-                <div className="flex items-center gap-2 mb-2 text-navy-700 font-semibold text-sm">
-                  <Shield size={14} /> AI Resolution Plan Recommended
-                </div>
-                <div className="text-xs text-ink-600 space-y-2">
-                  <p><span className="font-medium text-ink-800">Est. Cost:</span> {selected.aiResolutionPlan.estimatedCost}</p>
-                  <p><span className="font-medium text-ink-800">Depts:</span> {selected.aiResolutionPlan.departments?.join(', ')}</p>
-                  <div className="pl-4 border-l-2 border-navy-200">
-                    <span className="font-medium text-ink-800 block mb-1">Suggested Steps:</span>
-                    <ul className="list-disc pl-2 space-y-1">
-                      {selected.aiResolutionPlan.steps?.map((step, idx) => (
-                        <li key={idx}>{step}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleCommit} className="px-6 py-5 space-y-4">
-              <div className="input-group">
-                <label className="input-label">Authority / Department name</label>
-                <input
-                  className="input"
-                  placeholder="e.g. BBMP Roads Division"
-                  value={form.authorityName}
-                  onChange={e => setForm(p => ({ ...p, authorityName: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Promised action</label>
-                <textarea
-                  className="input h-20 resize-none"
-                  placeholder="e.g. Patch all potholes with bitumen mix within 7 days"
-                  value={form.promisedAction}
-                  onChange={e => setForm(p => ({ ...p, promisedAction: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Deadline (ETA)</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={form.etaDate}
-                  onChange={e => setForm(p => ({ ...p, etaDate: e.target.value }))}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                />
-              </div>
-
-              <div className="info-bar text-xs">
-                <Clock size={13} className="flex-shrink-0" />
-                If the issue isn't resolved by this date, the commitment will be automatically marked as broken — publicly.
-              </div>
-
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setSelected(null)} className="btn-secondary flex-1 justify-center">
-                  Cancel
-                </button>
-                <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">
-                  {submitting
-                    ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    : 'Create Commitment'
-                  }
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Feature 1: Resolve Commitment Modal */}
-      {resolving && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-ink-900/30 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl border border-border shadow-card-hover w-full max-w-md animate-slide-up">
-            <div className="px-6 pt-5 pb-4 border-b border-border">
-              <h3 className="font-serif text-lg font-semibold text-teal-900">Mark as Resolved</h3>
-              <p className="text-sm text-ink-500 mt-0.5">Upload a photo to provide visual proof of impact.</p>
-            </div>
-
-            <form onSubmit={handleResolveCommitment} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleCommit} className="p-6 space-y-4">
               <div>
-                <p className="input-label">Resolution Photo <span className="text-ink-400 font-normal">(recommended)</span></p>
-                {resPhotoPreview ? (
-                   <div className="relative rounded-lg overflow-hidden border border-border group h-40">
-                     <img src={resPhotoPreview} alt="Resolution" className="w-full h-full object-cover" />
-                     <button type="button" onClick={() => { setResPhotoFile(null); setResPhotoPreview(''); }} className="absolute top-2 right-2 bg-white/90 border border-border rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Remove</button>
-                   </div>
-                ) : (
-                  <button type="button" onClick={() => resFileInputRef.current?.click()} className="w-full h-40 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-teal-300 hover:bg-teal-50 transition-colors">
-                    <Camera size={24} className="text-ink-300" />
-                    <span className="text-sm text-ink-500">Tap to upload before/after proof</span>
-                  </button>
-                )}
-                <input ref={resFileInputRef} type="file" accept="image/*" className="hidden" onChange={e => {
-                  if (e.target.files[0]) { setResPhotoFile(e.target.files[0]); setResPhotoPreview(URL.createObjectURL(e.target.files[0])); }
-                }} />
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Authority Name</label>
+                <input value={form.authorityName} onChange={e=>setForm(p=>({...p, authorityName:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required placeholder="e.g. Roads Division" />
               </div>
-
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => { setResolving(null); setResPhotoFile(null); setResPhotoPreview(''); }} className="btn-secondary flex-1 justify-center">Cancel</button>
-                <button type="submit" disabled={isResolving} className="btn-primary bg-teal-600 hover:bg-teal-700 flex-1 justify-center">
-                  {isResolving ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : 'Confirm Resolution'}
-                </button>
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Promised Action</label>
+                <textarea value={form.promisedAction} onChange={e=>setForm(p=>({...p, promisedAction:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" rows="3" required placeholder="e.g. Patch potholes within 7 days" />
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Deadline (ETA)</label>
+                <input type="date" min={new Date().toISOString().split('T')[0]} value={form.etaDate} onChange={e=>setForm(p=>({...p, etaDate:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setSelected(null)} className="flex-1 bg-surface-variant text-on-surface-variant h-12 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Cancel</button>
+                <button type="submit" disabled={submitting} className="flex-1 bg-primary text-on-primary h-12 rounded-lg font-bold hover:bg-primary-container transition-colors">{submitting ? 'Submitting...' : 'Commit'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+
+      {resolving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-xl shadow-lg border border-outline-variant overflow-hidden">
+            <div className="px-6 py-4 border-b border-outline-variant bg-surface-container-low">
+              <h3 className="font-headline-md text-headline-md text-secondary">Mark as Resolved</h3>
+            </div>
+            <form onSubmit={handleResolveCommitment} className="p-6 space-y-4">
+              <p className="font-body-md text-body-md text-on-surface-variant mb-4">Confirm that you have completed the promised action for this issue.</p>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setResolving(null)} className="flex-1 bg-surface-variant text-on-surface-variant h-12 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Cancel</button>
+                <button type="submit" disabled={isResolving} className="flex-1 bg-secondary text-on-secondary h-12 rounded-lg font-bold hover:bg-secondary-fixed transition-colors">{isResolving ? 'Resolving...' : 'Confirm'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </main>
   );
 }

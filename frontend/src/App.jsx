@@ -39,10 +39,10 @@ export default function App() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background text-on-background">
       <Navbar />
       <Routes>
-        <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
         <Route path="/report/new" element={<PrivateRoute><NewReport /></PrivateRoute>} />

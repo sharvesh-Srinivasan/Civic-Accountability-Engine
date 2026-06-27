@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Report Issue - CivicConnect</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#c7dde9",
+                        "surface-bright": "#f3faff",
+                        "secondary": "#1b6d24",
+                        "secondary-fixed-dim": "#88d982",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary": "#002046",
+                        "on-error-container": "#93000a",
+                        "surface-container-low": "#e6f6ff",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#1d2123",
+                        "primary-fixed-dim": "#aec7f7",
+                        "on-secondary-fixed": "#002204",
+                        "surface-container-high": "#d5ecf8",
+                        "primary-fixed": "#d6e3ff",
+                        "on-primary-container": "#87a0cd",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#9c9fa1",
+                        "on-secondary-container": "#217128",
+                        "inverse-primary": "#aec7f7",
+                        "secondary-fixed": "#a3f69c",
+                        "surface-variant": "#cfe6f2",
+                        "surface-container-highest": "#cfe6f2",
+                        "on-surface-variant": "#44474e",
+                        "on-tertiary-fixed": "#191c1e",
+                        "background": "#f3faff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#2e476f",
+                        "on-surface": "#071e27",
+                        "outline-variant": "#c4c6cf",
+                        "surface-container": "#dbf1fe",
+                        "inverse-surface": "#1e333c",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#465f88",
+                        "primary-container": "#1b365d",
+                        "on-primary-fixed": "#001b3d",
+                        "surface": "#f3faff",
+                        "inverse-on-surface": "#dff4ff",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#74777f",
+                        "on-secondary-fixed-variant": "#005312",
+                        "on-background": "#071e27",
+                        "secondary-container": "#a0f399",
+                        "tertiary-container": "#333638"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px",
+                        "stack-md": "16px",
+                        "container-max": "1200px",
+                        "unit": "4px",
+                        "gutter": "24px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Public Sans"],
+                        "label-md": ["Public Sans"],
+                        "body-lg": ["Public Sans"],
+                        "body-md": ["Public Sans"],
+                        "display-lg": ["Public Sans"],
+                        "headline-md": ["Public Sans"],
+                        "caption": ["Public Sans"],
+                        "headline-lg-mobile": ["Public Sans"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; background-color: #f3faff; color: #071e27; }
+        .step-inactive { opacity: 0.5; pointer-events: none; }
+        .step-active { opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar: Suppressed because this is a focused, transactional task flow (Issue submission form) -->
+<!-- Nav shell is hidden to prioritize the form canvas -->
+<main class="flex-grow flex items-center justify-center p-margin-mobile md:p-margin-desktop py-stack-lg">
+<div class="w-full max-w-3xl bg-surface-container-lowest rounded-xl border border-outline-variant p-gutter shadow-sm">
+<header class="mb-stack-lg border-b border-outline-variant pb-stack-md flex justify-between items-center">
+<div>
+<h1 class="font-headline-lg text-headline-lg hidden md:block">Report Issue</h1>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:hidden">Report Issue</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-unit">Please provide details to help us resolve the problem.</p>
+</div>
+<button class="flex items-center gap-2 text-primary hover:text-primary-fixed-dim transition-colors font-label-md text-label-md group">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+<span>Cancel</span>
+</button>
+</header>
+<!-- Progress Indicator -->
+<div class="mb-stack-lg">
+<div class="flex items-center justify-between relative">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-surface-container-high rounded-full -z-10"></div>
+<div class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full -z-10 transition-all duration-300" id="progress-bar" style="width: 25%;"></div>
+<div class="flex flex-col items-center gap-unit bg-surface-container-lowest px-2">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md text-label-md shadow-sm step-indicator" data-step="1">1</div>
+<span class="font-caption text-caption text-primary font-bold">Category</span>
+</div>
+<div class="flex flex-col items-center gap-unit bg-surface-container-lowest px-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant flex items-center justify-center font-label-md text-label-md step-indicator" data-step="2">2</div>
+<span class="font-caption text-caption text-on-surface-variant">Details</span>
+</div>
+<div class="flex flex-col items-center gap-unit bg-surface-container-lowest px-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant flex items-center justify-center font-label-md text-label-md step-indicator" data-step="3">3</div>
+<span class="font-caption text-caption text-on-surface-variant">Location</span>
+</div>
+<div class="flex flex-col items-center gap-unit bg-surface-container-lowest px-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant flex items-center justify-center font-label-md text-label-md step-indicator" data-step="4">4</div>
+<span class="font-caption text-caption text-on-surface-variant">Contact</span>
+</div>
+</div>
+</div>
+<!-- Form Content -->
+<form class="space-y-stack-md relative min-h-[400px]" id="issueForm">
+<!-- Step 1: Category -->
+<div class="step-active absolute inset-0 transition-opacity duration-300" id="step1">
+<h2 class="font-headline-md text-headline-md mb-stack-md">Select a Category</h2>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-stack-md">
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input checked="" class="sr-only" name="category" type="radio" value="pothole"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">warning</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Pothole</span>
+</label>
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input class="sr-only" name="category" type="radio" value="streetlight"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">lightbulb</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Street Light</span>
+</label>
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input class="sr-only" name="category" type="radio" value="trash"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">delete</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Trash/Debris</span>
+</label>
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input class="sr-only" name="category" type="radio" value="graffiti"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">brush</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Graffiti</span>
+</label>
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input class="sr-only" name="category" type="radio" value="park"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">park</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Park Maint.</span>
+</label>
+<label class="relative flex flex-col items-center p-stack-md rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container-low transition-colors group has-[:checked]:border-primary has-[:checked]:bg-primary-fixed has-[:checked]:ring-2 has-[:checked]:ring-primary">
+<input class="sr-only" name="category" type="radio" value="other"/>
+<span class="material-symbols-outlined text-4xl mb-unit text-primary group-has-[:checked]:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 0;">more_horiz</span>
+<span class="font-label-md text-label-md text-center text-on-surface">Other</span>
+</label>
+</div>
+</div>
+<!-- Step 2: Details (Hidden initially) -->
+<div class="step-inactive absolute inset-0 transition-opacity duration-300 hidden" id="step2">
+<h2 class="font-headline-md text-headline-md mb-stack-md">Provide Details</h2>
+<div class="space-y-stack-md">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-unit" for="description">Description *</label>
+<textarea class="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md text-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" id="description" name="description" placeholder="Describe the issue in detail..." rows="4"></textarea>
+<p class="font-caption text-caption text-on-surface-variant mt-unit flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">info</span> Please provide specific details to help us locate and resolve the issue quickly.</p>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-unit">Photo Upload (Optional)</label>
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-stack-md flex flex-col items-center justify-center bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant group-hover:text-primary mb-2 transition-colors" style="font-variation-settings: 'FILL' 0;">cloud_upload</span>
+<span class="font-label-md text-label-md text-primary">Click to upload or drag and drop</span>
+<span class="font-caption text-caption text-on-surface-variant mt-1">SVG, PNG, JPG or GIF (max. 10MB)</span>
+<input accept="image/*" class="hidden" type="file"/>
+</div>
+</div>
+</div>
+</div>
+</form>
+<!-- Navigation Buttons -->
+<div class="mt-stack-lg pt-stack-md border-t border-outline-variant flex justify-between items-center z-10 relative">
+<button class="px-6 h-12 border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg hover:bg-surface-container-low transition-colors invisible" id="btnBack" type="button">Back</button>
+<button class="px-6 h-12 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-surface-tint transition-colors ml-auto" id="btnNext" type="button">Continue</button>
+</div>
+</div>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const steps = [
+                document.getElementById('step1'),
+                document.getElementById('step2')
+            ];
+            const btnNext = document.getElementById('btnNext');
+            const btnBack = document.getElementById('btnBack');
+            const progressBar = document.getElementById('progress-bar');
+            const indicators = document.querySelectorAll('.step-indicator');
+            
+            let currentStep = 0;
+            const totalSteps = 4; // Visual representation
+
+            function updateUI() {
+                // Hide all form steps
+                steps.forEach(step => {
+                    step.classList.remove('step-active');
+                    step.classList.add('step-inactive', 'hidden');
+                });
+
+                // Show current step if it exists in DOM
+                if(steps[currentStep]) {
+                    steps[currentStep].classList.remove('hidden');
+                    // slight delay for transition
+                    setTimeout(() => {
+                        steps[currentStep].classList.remove('step-inactive');
+                        steps[currentStep].classList.add('step-active');
+                    }, 50);
+                }
+
+                // Update Progress Bar & Indicators
+                const progressPercentage = ((currentStep + 1) / totalSteps) * 100;
+                // Cap visual progress for this demo since we only built 2 steps physically
+                progressBar.style.width = `${Math.min(progressPercentage, (2/4)*100)}%`; 
+
+                indicators.forEach((ind, index) => {
+                    const stepNum = index + 1;
+                    const label = ind.nextElementSibling;
+
+                    if (index <= currentStep) {
+                        ind.classList.remove('bg-surface-container-high', 'text-on-surface-variant', 'border', 'border-outline-variant');
+                        ind.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+                        label.classList.remove('text-on-surface-variant');
+                        label.classList.add('text-primary', 'font-bold');
+                    } else {
+                        ind.classList.add('bg-surface-container-high', 'text-on-surface-variant', 'border', 'border-outline-variant');
+                        ind.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+                        label.classList.add('text-on-surface-variant');
+                        label.classList.remove('text-primary', 'font-bold');
+                    }
+                });
+
+                // Buttons
+                if (currentStep === 0) {
+                    btnBack.classList.add('invisible');
+                } else {
+                    btnBack.classList.remove('invisible');
+                }
+
+                if (currentStep === steps.length - 1) {
+                    btnNext.textContent = 'Submit';
+                    // Optional: Change button color for submit
+                    btnNext.classList.remove('bg-primary', 'hover:bg-surface-tint');
+                    btnNext.classList.add('bg-secondary', 'text-on-secondary', 'hover:bg-secondary-container', 'hover:text-on-secondary-container');
+                } else {
+                    btnNext.textContent = 'Continue';
+                    btnNext.classList.add('bg-primary', 'hover:bg-surface-tint');
+                    btnNext.classList.remove('bg-secondary', 'text-on-secondary', 'hover:bg-secondary-container', 'hover:text-on-secondary-container');
+                }
+            }
+
+            btnNext.addEventListener('click', () => {
+                if (currentStep < steps.length - 1) {
+                    currentStep++;
+                    updateUI();
+                } else {
+                    // Handle form submission
+                    alert('Form submitted! (Demo)');
+                }
+            });
+
+            btnBack.addEventListener('click', () => {
+                if (currentStep > 0) {
+                    currentStep--;
+                    updateUI();
+                }
+            });
+        });
+    </script>
+</body></html>
