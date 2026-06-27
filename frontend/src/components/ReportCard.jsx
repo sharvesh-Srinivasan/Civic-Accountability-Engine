@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /* ── Category config ─────────────────────────────────────── */
 const CATEGORY_CFG = {
@@ -29,6 +29,7 @@ const STATUS_MAP = {
   acknowledged: { label: 'Acknowledged', className: 'bg-secondary-container text-on-secondary-container' },
   resolved:     { label: 'Resolved',     className: 'bg-secondary text-on-secondary' },
   disputed:     { label: 'Disputed',     className: 'bg-error text-on-error' },
+  reopened:     { label: 'Reopened',     className: 'bg-error text-on-error border-2 border-error font-extrabold' },
 };
 export function StatusBadge({ status }) {
   const cfg = STATUS_MAP[status] || { label: status, className: 'bg-surface-container text-on-surface-variant' };
@@ -137,6 +138,8 @@ export function PromiseTimeline({ report, commitment }) {
 
 /* ── Main ReportCard ─────────────────────────────────────── */
 export default function ReportCard({ report, commitment, onClick, compact = false }) {
+  const [isReopened, setIsReopened] = useState(false);
+
   const cfg = getCategoryConfig(report.category);
   let date;
   try {
@@ -144,6 +147,18 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   } catch {
     date = new Date();
   }
+
+  // 1. Cost of Inaction Estimator
+  const daysSinceCreation = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
+  const daysOpen = daysSinceCreation > 0 ? daysSinceCreation : 1;
+  const costMultiplier = { pothole: 500, streetlight: 200, garbage: 300, water_leak: 400, other: 100 };
+  const estimatedCost = daysOpen * (costMultiplier[report.category] || 100);
+
+  // 2. Re-verification Agent
+  const effectiveStatus = isReopened ? 'reopened' : report.status;
+  const isResolved = report.status === 'resolved';
+  // Mock logic: Trigger reverification if it's resolved and older than ~10 days (simulating 30 days for demo)
+  const isReverificationDue = isResolved && daysOpen > 10 && !isReopened;
 
   const CardEl = onClick ? 'button' : 'div';
 
@@ -158,7 +173,7 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="font-label-md font-bold text-[12px] uppercase tracking-wider text-on-surface">{cfg.label}</span>
-            <StatusBadge status={report.status} />
+            <StatusBadge status={effectiveStatus} />
             <SeverityBadge severity={report.severity} />
           </div>
 
@@ -183,6 +198,47 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
               <span className="material-symbols-outlined text-[14px]">check_circle</span> 
               {Math.floor(report.confirmations)} Verified
             </div>
+          )}
+
+          {/* Feature: Civic Cost-of-Inaction Estimator */}
+          {!compact && effectiveStatus !== 'resolved' && (
+            <div className="mt-3 bg-surface-container-lowest border border-outline-variant p-2.5 rounded-lg w-fit shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-error"></div>
+              <div className="flex items-center gap-1.5 mb-1 pl-2">
+                <span className="material-symbols-outlined text-[14px] text-error">trending_up</span>
+                <span className="font-label-md text-[10px] font-bold text-on-surface uppercase tracking-wider">Cost of Inaction</span>
+              </div>
+              <p className="font-body-sm text-[11px] text-on-surface-variant pl-2">
+                Estimated cumulative cost to community so far: <strong className="text-on-surface">~₹{estimatedCost.toLocaleString()}</strong> <span className="opacity-50">(illustrative estimate)</span>
+              </p>
+            </div>
+          )}
+
+          {/* Feature: Accountability Re-Verification Agent */}
+          {!compact && isReverificationDue && (
+            <div className="mt-4 bg-primary-fixed/20 border border-primary p-3 rounded-lg w-full text-left" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="material-symbols-outlined text-[16px] text-primary">fact_check</span>
+                <span className="font-label-md text-[11px] font-bold text-primary uppercase tracking-wider">Accountability Re-Verification</span>
+              </div>
+              <p className="font-body-sm text-xs text-on-surface mb-3 leading-relaxed">
+                This issue was marked resolved over 30 days ago. As a previous reporter, please verify: <strong>Is this still fixed?</strong>
+              </p>
+              <div className="flex items-center gap-2">
+                <button className="bg-surface border border-outline text-on-surface px-4 py-1.5 rounded-md text-xs font-bold hover:bg-surface-variant transition-colors" onClick={(e) => { e.stopPropagation(); alert('Thanks for confirming!'); }}>Yes, it holds up</button>
+                <button className="bg-error text-on-error px-4 py-1.5 rounded-md text-xs font-bold hover:bg-error/90 transition-colors shadow-sm" onClick={(e) => { e.stopPropagation(); setIsReopened(true); }}>No, problem returned</button>
+              </div>
+            </div>
+          )}
+
+          {isReopened && (
+             <div className="mt-4 bg-error-container text-on-error-container p-3 rounded-lg border border-error shadow-sm" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 mb-1">
+                   <span className="material-symbols-outlined text-[16px]">warning</span>
+                   <span className="font-bold text-xs uppercase tracking-wider">Authority Trust Score Penalized</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">This report was automatically reopened because community members flagged the fix as defective. The responsible authority has been notified.</p>
+             </div>
           )}
         </div>
 

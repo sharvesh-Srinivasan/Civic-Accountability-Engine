@@ -201,6 +201,45 @@ export default function Dashboard() {
         </Link>
       </header>
 
+      {/* Feature 5: Equity Watch - Silent Issue Detector */}
+      <div className="mb-stack-md bg-secondary-container/50 border border-secondary p-4 rounded-xl flex items-start gap-3 shadow-sm animate-fade-in">
+        <span className="material-symbols-outlined text-secondary mt-0.5">policy</span>
+        <div>
+          <h3 className="font-label-md font-bold text-on-surface uppercase tracking-wider text-[11px] mb-1">Equity Watch: Silent Issue Detector</h3>
+          <p className="font-body-sm text-sm text-on-surface leading-relaxed">
+            <strong>Ward 12</strong> has unusually low reporting volume relative to its population density. This may reflect lower digital adoption rather than fewer infrastructure issues. Community outreach is recommended.
+          </p>
+        </div>
+      </div>
+
+      {/* Feature 3: Ward Trust Score Forecast */}
+      <div className="mb-stack-md bg-surface-container-lowest border border-primary-fixed-dim p-gutter rounded-xl relative overflow-hidden shadow-sm animate-fade-in">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full pointer-events-none"></div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">Ward Trust Score Forecast</h2>
+              <span className="px-2 py-0.5 bg-primary-container text-on-primary-container text-[10px] font-bold uppercase rounded tracking-wider shadow-sm">AI Insight</span>
+            </div>
+            <p className="font-body-md text-on-surface-variant max-w-2xl leading-relaxed mt-2">
+              <strong>Gemini Forecast:</strong> Consistent upward trend in resolution speed over the past 3 months; expected to stabilize around a score of 80/100 as recent commitments are fulfilled.
+            </p>
+          </div>
+          <div className="flex items-end gap-4 shrink-0">
+            {/* Mock Sparkline */}
+            <div className="flex items-end gap-1.5 h-12 pb-1">
+              {[40, 55, 50, 65, 71, 78].map((val, i) => (
+                <div key={i} className="w-3 bg-primary rounded-t-sm transition-all duration-1000" style={{ height: `${val}%`, opacity: 0.3 + (i * 0.1) }}></div>
+              ))}
+            </div>
+            <div className="text-right">
+              <div className="font-display-md text-primary leading-none">78</div>
+              <div className="text-[10px] font-label-md text-on-surface-variant uppercase tracking-wider mt-1">Current Score</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Overview Bento */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-md mb-stack-lg">
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-gutter flex flex-col justify-between">
@@ -236,6 +275,29 @@ export default function Dashboard() {
           <div className="font-caption text-caption text-on-surface-variant mt-2">Awaiting action or acknowledged</div>
         </div>
       </div>
+
+      {/* Feature 4: Cross-Ward Best Practice Matching */}
+      <section className="mb-stack-lg bg-surface-container-low border border-outline-variant p-gutter rounded-xl shadow-sm animate-fade-in">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="material-symbols-outlined text-primary">hub</span>
+          <h2 className="font-headline-sm text-headline-sm text-on-surface">Cross-Ward Benchmarking</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant">
+            <h3 className="text-[11px] font-label-md font-bold text-on-surface-variant uppercase tracking-wider mb-2">Opportunity Identified</h3>
+            <p className="font-body-sm text-sm text-on-surface leading-relaxed">
+              <strong>Ward 3</strong> currently averages <span className="text-error font-bold">21 days</span> to resolve Streetlight issues.
+            </p>
+          </div>
+          <div className="bg-surface-container-lowest p-4 rounded-lg border border-primary-fixed-dim relative overflow-hidden shadow-sm">
+             <div className="absolute top-0 right-0 bottom-0 w-1 bg-secondary"></div>
+            <h3 className="text-[11px] font-label-md font-bold text-secondary uppercase tracking-wider mb-2">Best Practice Match</h3>
+            <p className="font-body-sm text-sm text-on-surface leading-relaxed">
+              <strong>Ward 7</strong> resolves the same category in an average of <span className="text-secondary font-bold">4 days</span>. The system recommends connecting Ward 3 officials with Ward 7 leadership for knowledge transfer.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Recent Reports Table */}
       <section className="bg-surface-container-lowest border border-outline-variant rounded-xl mb-stack-lg overflow-hidden">
