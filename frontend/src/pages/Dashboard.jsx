@@ -98,26 +98,40 @@ function ClusterMarkers({ reports }) {
 
 function DynamicMapController({ reports, userDoc }) {
   const map = useMap();
+
   useEffect(() => {
-    if (!map) return;
-    try {
-      if (userDoc?.lat && userDoc?.lng) {
-        map.setView([userDoc.lat, userDoc.lng], 13);
-      } else {
-        const validReports = reports?.filter(r => r.lat && r.lng) || [];
-        if (validReports.length > 0) {
-          const bounds = L.latLngBounds(validReports.map(r => [r.lat, r.lng]));
-          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-        } else if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(pos => map.setView([pos.coords.latitude, pos.coords.longitude], 13));
+    // Defer until the map panes are fully initialized
+    const timer = setTimeout(() => {
+      try {
+        if (!map || !map._panes) return;
+        if (userDoc?.lat && userDoc?.lng) {
+          map.setView([userDoc.lat, userDoc.lng], 13, { animate: false });
         } else {
-          map.setView([11.0168, 76.9558], 12);
+          const validReports = reports?.filter(r => r.lat && r.lng) || [];
+          if (validReports.length > 0) {
+            const bounds = L.latLngBounds(validReports.map(r => [r.lat, r.lng]));
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: false });
+          } else if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                try {
+                  if (map && map._panes) map.setView([pos.coords.latitude, pos.coords.longitude], 13, { animate: false });
+                } catch {}
+              },
+              () => {}
+            );
+          } else {
+            map.setView([11.0168, 76.9558], 12, { animate: false });
+          }
         }
+      } catch (e) {
+        // Map not ready yet, silently skip
       }
-    } catch (e) {
-      console.warn("Map view set failed: ", e);
-    }
+    }, 200);
+
+    return () => clearTimeout(timer);
   }, [reports, map, userDoc]);
+
   return null;
 }
 

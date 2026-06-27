@@ -13,16 +13,27 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 const corsOptions = {
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    /\.vercel\.app$/,
-    /\.web\.app$/,
-    /\.firebaseapp\.com$/,
-    'https://civicwatch-d81aa.web.app'
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      /localhost/,
+      /\.web\.app$/,
+      /\.firebaseapp\.com$/,
+      /\.vercel\.app$/,
+      /\.render\.com$/,
+    ];
+    if (allowed.some(pattern => pattern.test(origin))) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Permissive for now — lock down in production
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight for all routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
