@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
@@ -29,6 +31,20 @@ export default function AuthorityView() {
   const [isResolving, setIsResolving] = useState(false);
   const resFileInputRef = useRef(null);
 
+  const { user, userDoc, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else if (userDoc && userDoc.role !== 'authority') {
+        toast.error('Unauthorized access. This portal is for officials only.');
+        navigate('/');
+      }
+    }
+  }, [user, userDoc, authLoading, navigate]);
+
   const load = async () => {
     if (!db) { setLoading(false); return; }
     setLoading(true);
@@ -54,11 +70,26 @@ export default function AuthorityView() {
 
       if (ranked.length > 0) {
         try {
+          // Implement 8-second timeout for AI insight
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          
           const res = await api.post('/api/reports/prioritize-insight', {
             severity: ranked[0].severity, daysOpen: ranked[0].daysOpen, count: 1, category: ranked[0].category
-          });
-          setInsight({ reportId: ranked[0].id, text: res.data.insight });
-        } catch {}
+          }, { signal: controller.signal });
+          
+          clearTimeout(timeoutId);
+          if (res.data?.insight) {
+            setInsight({ reportId: ranked[0].id, text: res.data.insight });
+          } else {
+            // Fallback if backend returns empty or mock success
+            setInsight({ reportId: ranked[0].id, text: `Review this high-priority ${ranked[0].severity} ${ranked[0].category.replace('_',' ')} issue immediately.` });
+          }
+        } catch (err) {
+          console.warn('AI insight fetch failed or timed out:', err);
+          // Fallback insight
+          setInsight({ reportId: ranked[0].id, text: `Review this high-priority ${ranked[0].severity} ${ranked[0].category.replace('_',' ')} issue immediately.` });
+        }
       }
     } catch { toast.error('Failed to load data'); }
     finally { setLoading(false); }
@@ -120,6 +151,10 @@ export default function AuthorityView() {
     .map(([name, stats]) => ({ name, rate: Math.round((stats.broken / stats.total) * 100) }));
 
   const tabData = tab === 'open' ? openReports : tab === 'all' ? reports : commitments;
+
+  if (authLoading || !user || userDoc?.role !== 'authority') {
+    return <div className="flex-1 flex justify-center items-center h-screen bg-background"><span className="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>;
+  }
 
   return (
     <main className="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-20 md:pt-margin-desktop bg-background text-on-background min-h-screen font-body-md">
@@ -292,15 +327,15 @@ export default function AuthorityView() {
             </div>
             <form onSubmit={handleCommit} className="p-6 space-y-4">
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Authority Name</label>
-                <input value={form.authorityName} onChange={e=>setForm(p=>({...p, authorityName:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required placeholder="e.g. Roads Division" />
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Authority Name <span className="text-error">*</span></label>
+                <input value={form.authorityName} onChange={e=>setForm(p=>({...p, authorityName:e.target.value}))} maxLength="50" className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required placeholder="e.g. Roads Division" />
               </div>
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Promised Action</label>
-                <textarea value={form.promisedAction} onChange={e=>setForm(p=>({...p, promisedAction:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" rows="3" required placeholder="e.g. Patch potholes within 7 days" />
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Promised Action <span className="text-error">*</span></label>
+                <textarea value={form.promisedAction} onChange={e=>setForm(p=>({...p, promisedAction:e.target.value}))} maxLength="250" className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" rows="3" required placeholder="e.g. Patch potholes within 7 days" />
               </div>
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Deadline (ETA)</label>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">Deadline (ETA) <span className="text-error">*</span></label>
                 <input type="date" min={new Date().toISOString().split('T')[0]} value={form.etaDate} onChange={e=>setForm(p=>({...p, etaDate:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required />
               </div>
               <div className="flex gap-3 pt-4">

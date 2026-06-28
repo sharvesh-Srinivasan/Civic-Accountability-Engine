@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -80,9 +80,16 @@ function ImpactReceipt({ report }) {
 }
 
 export default function MyReports() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (!user || !db) { setLoading(false); return; }
@@ -103,6 +110,10 @@ export default function MyReports() {
                       : resolvedCount >= 3 ? 'Active Operative'
                       : resolvedCount >= 1 ? 'Verified Citizen'
                       : null;
+
+  if (authLoading || !user) {
+    return <div className="flex-1 flex justify-center items-center h-screen bg-background"><span className="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>;
+  }
 
   return (
     <main className="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-20 md:pt-margin-desktop bg-background text-on-background min-h-screen font-body-md">

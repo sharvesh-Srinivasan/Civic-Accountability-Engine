@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -40,17 +41,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-on-background">
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
-        <Route path="/report/new" element={<PrivateRoute><NewReport /></PrivateRoute>} />
-        <Route path="/my-reports" element={<PrivateRoute><MyReports /></PrivateRoute>} />
-        <Route path="/authority" element={<AuthorityRoute><AuthorityView /></AuthorityRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <CivicBot />
+      <ErrorBoundary>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+          <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
+          <Route path="/report/new" element={<PrivateRoute><NewReport /></PrivateRoute>} />
+          <Route path="/my-reports" element={<PrivateRoute><MyReports /></PrivateRoute>} />
+          <Route path="/authority" element={<AuthorityRoute><AuthorityView /></AuthorityRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <CivicBot />
+      </ErrorBoundary>
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 
 export default function NewReport() {
-  const { user, userDoc } = useAuth();
+  const { user, userDoc, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -19,8 +21,10 @@ export default function NewReport() {
   const [imagePreview, setImagePreview] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
+  const [city, setCity] = useState('');
   const [wardId, setWardId] = useState('');
   const [wards, setWards] = useState([]);
+  const [cities, setCities] = useState([]);
 
   // Loading/Processing State
   const [locLoading, setLocLoading] = useState(false);
@@ -31,14 +35,46 @@ export default function NewReport() {
   const [nearbyReports, setNearbyReports] = useState([]);
 
   useEffect(() => {
-    api.get('/api/wards').then(r => setWards(r.data)).catch(() => {
-      setWards([
-        { id: 'ward1', name: 'Ward 1 - Downtown' },
-        { id: 'ward2', name: 'Ward 2 - Westside' },
-        { id: 'ward3', name: 'Ward 3 - Eastside' },
-      ]);
-      toast('Using offline ward list (API unreachable)', { icon: '⚠️' });
-    });
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const fetchWards = async () => {
+      try {
+        if (db) {
+          const snap = await getDocs(collection(db, 'wards'));
+          const fetchedWards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (fetchedWards.length > 0) {
+            setWards(fetchedWards);
+            const uniqueCities = Array.from(new Set(fetchedWards.map(w => w.city).filter(Boolean))).sort();
+            setCities(uniqueCities);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch wards from Firestore:', err);
+      }
+      
+      // Fallback if Firestore fails/is empty
+      try {
+        const r = await api.get('/api/wards');
+        setWards(r.data);
+        const uniqueCities = Array.from(new Set(r.data.map(w => w.city).filter(Boolean))).sort();
+        setCities(uniqueCities);
+      } catch {
+        const fallbackWards = [
+          { id: 'ward1', name: 'Ward 1 - Downtown', city: 'Chennai' },
+          { id: 'ward2', name: 'Ward 2 - Westside', city: 'Coimbatore' },
+          { id: 'ward3', name: 'Ward 3 - Eastside', city: 'Madurai' },
+        ];
+        setWards(fallbackWards);
+        setCities(['Chennai', 'Coimbatore', 'Madurai']);
+        toast('Using offline ward list', { icon: '⚠️' });
+      }
+    };
+    fetchWards();
   }, []);
 
   useEffect(() => {
@@ -175,6 +211,10 @@ export default function NewReport() {
     { id: 'other', icon: 'more_horiz', label: 'Other' },
   ];
 
+  if (authLoading || !user) {
+    return <div className="flex-1 flex justify-center items-center h-screen bg-background"><span className="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>;
+  }
+
   return (
     <main className="flex-1 md:ml-64 flex flex-col items-center p-margin-mobile md:p-margin-desktop py-stack-lg bg-background text-on-background min-h-screen pt-24 font-body-md">
       <div className="w-full max-w-3xl bg-surface-container-lowest rounded-xl border border-outline-variant p-gutter shadow-sm">
@@ -232,8 +272,8 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Provide Details</h2>
               <div className="space-y-stack-md">
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1">Description *</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none" rows="4" placeholder="Describe the issue in detail..." />
+                  <label className="block font-label-md text-label-md text-on-surface mb-1">Description <span className="text-error">*</span></label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none" rows="4" placeholder="Describe the issue in detail..." />
                 </div>
                 <div>
                   <label className="block font-label-md text-label-md text-on-surface mb-1">Photo Upload (Optional)</label>
@@ -259,12 +299,21 @@ export default function NewReport() {
           {step === 3 && (
             <div className="animate-fade-in space-y-6">
               <h2 className="font-headline-md text-headline-md mb-stack-md">Pinpoint Location</h2>
-              <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Ward / Area *</label>
-                <select value={wardId} onChange={e => setWardId(e.target.value)} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none">
-                  <option value="">Select your ward</option>
-                  {wards.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-1">City <span className="text-error">*</span></label>
+                  <select value={city} onChange={e => { setCity(e.target.value); setWardId(''); }} required className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none">
+                    <option value="">Select your city</option>
+                    {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-label-md text-label-md text-on-surface mb-1">Ward / Area <span className="text-error">*</span></label>
+                  <select value={wardId} onChange={e => setWardId(e.target.value)} required disabled={!city} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50">
+                    <option value="">{city ? "Select your ward" : "Select a city first"}</option>
+                    {wards.filter(w => w.city === city).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1">Coordinates (Optional)</label>

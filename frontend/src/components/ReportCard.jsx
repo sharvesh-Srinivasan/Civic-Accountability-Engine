@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import toast from 'react-hot-toast';
 
 /* ── Category config ─────────────────────────────────────── */
 const CATEGORY_CFG = {
@@ -139,6 +142,25 @@ export function PromiseTimeline({ report, commitment }) {
 /* ── Main ReportCard ─────────────────────────────────────── */
 export default function ReportCard({ report, commitment, onClick, compact = false }) {
   const [isReopened, setIsReopened] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleReopen = async (e) => {
+    e.stopPropagation();
+    if (isUpdating) return;
+    setIsUpdating(true);
+    try {
+      if (db) {
+        await updateDoc(doc(db, 'reports', report.id), { status: 'reopened' });
+      }
+      setIsReopened(true);
+      toast.success('Report reopened and flagged for authority review.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to reopen the report.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const cfg = getCategoryConfig(report.category);
   let date;
@@ -225,8 +247,8 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
                 This issue was marked resolved over 30 days ago. As a previous reporter, please verify: <strong>Is this still fixed?</strong>
               </p>
               <div className="flex items-center gap-2">
-                <button className="bg-surface border border-outline text-on-surface px-4 py-1.5 rounded-md text-xs font-bold hover:bg-surface-variant transition-colors" onClick={(e) => { e.stopPropagation(); alert('Thanks for confirming!'); }}>Yes, it holds up</button>
-                <button className="bg-error text-on-error px-4 py-1.5 rounded-md text-xs font-bold hover:bg-error/90 transition-colors shadow-sm" onClick={(e) => { e.stopPropagation(); setIsReopened(true); }}>No, problem returned</button>
+                <button className="bg-surface border border-outline text-on-surface px-4 py-1.5 rounded-md text-xs font-bold hover:bg-surface-variant transition-colors" onClick={(e) => { e.stopPropagation(); toast('Thanks for confirming!', {icon:'✅'}); }}>Yes, it holds up</button>
+                <button disabled={isUpdating} className="bg-error text-on-error px-4 py-1.5 rounded-md text-xs font-bold hover:bg-error/90 transition-colors shadow-sm disabled:opacity-50" onClick={handleReopen}>{isUpdating ? 'Updating...' : 'No, problem returned'}</button>
               </div>
             </div>
           )}
