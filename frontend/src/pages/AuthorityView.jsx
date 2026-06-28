@@ -23,6 +23,7 @@ export default function AuthorityView() {
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [tab, setTab] = useState('open');
+  const [dataError, setDataError] = useState('');
 
   const [insight, setInsight] = useState(null);
   const [resolving, setResolving] = useState(null);
@@ -48,10 +49,12 @@ export default function AuthorityView() {
   const load = async () => {
     if (!db) { setLoading(false); return; }
     setLoading(true);
+    setDataError('');
     try {
+      const { limit } = await import('firebase/firestore');
       const [rSnap, cSnap] = await Promise.all([
-        getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'commitments'), orderBy('createdAt', 'desc'))),
+        getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(50))),
+        getDocs(query(collection(db, 'commitments'), orderBy('createdAt', 'desc'), limit(50))),
       ]);
       const fetchedReports = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const fetchedCommitments = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -91,7 +94,11 @@ export default function AuthorityView() {
           setInsight({ reportId: ranked[0].id, text: `Review this high-priority ${ranked[0].severity} ${ranked[0].category.replace('_',' ')} issue immediately.` });
         }
       }
-    } catch { toast.error('Failed to load data'); }
+    } catch (err) { 
+      console.error(err);
+      setDataError('Failed to load data. Please refresh.');
+      toast.error('Failed to load data'); 
+    }
     finally { setLoading(false); }
   };
 
@@ -173,6 +180,13 @@ export default function AuthorityView() {
           Run Check
         </button>
       </header>
+
+      {dataError && (
+        <div className="mb-stack-lg bg-error-container text-on-error-container p-4 rounded-xl flex items-center gap-3 border border-error">
+          <span className="material-symbols-outlined">error</span>
+          <p className="font-body-md font-bold">{dataError}</p>
+        </div>
+      )}
 
       {/* KPI row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-stack-md mb-stack-lg">
@@ -328,15 +342,15 @@ export default function AuthorityView() {
             <form onSubmit={handleCommit} className="p-6 space-y-4">
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1">Authority Name <span className="text-error">*</span></label>
-                <input value={form.authorityName} onChange={e=>setForm(p=>({...p, authorityName:e.target.value}))} maxLength="50" className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required placeholder="e.g. Roads Division" />
+                <input value={form.authorityName} onChange={e=>setForm(p=>({...p, authorityName:e.target.value}))} maxLength="50" className={`w-full rounded-lg border ${!form.authorityName && submitting ? 'border-error bg-error-container/10' : 'border-outline-variant'} p-3 focus:border-primary focus:outline-none`} required placeholder="e.g. Roads Division" />
               </div>
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1">Promised Action <span className="text-error">*</span></label>
-                <textarea value={form.promisedAction} onChange={e=>setForm(p=>({...p, promisedAction:e.target.value}))} maxLength="250" className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" rows="3" required placeholder="e.g. Patch potholes within 7 days" />
+                <textarea value={form.promisedAction} onChange={e=>setForm(p=>({...p, promisedAction:e.target.value}))} maxLength="250" className={`w-full rounded-lg border ${!form.promisedAction && submitting ? 'border-error bg-error-container/10' : 'border-outline-variant'} p-3 focus:border-primary focus:outline-none`} rows="3" required placeholder="e.g. Patch potholes within 7 days" />
               </div>
               <div>
                 <label className="block font-label-md text-label-md text-on-surface mb-1">Deadline (ETA) <span className="text-error">*</span></label>
-                <input type="date" min={new Date().toISOString().split('T')[0]} value={form.etaDate} onChange={e=>setForm(p=>({...p, etaDate:e.target.value}))} className="w-full rounded-lg border border-outline-variant p-3 focus:border-primary focus:outline-none" required />
+                <input type="date" min={new Date().toISOString().split('T')[0]} value={form.etaDate} onChange={e=>setForm(p=>({...p, etaDate:e.target.value}))} className={`w-full rounded-lg border ${!form.etaDate && submitting ? 'border-error bg-error-container/10' : 'border-outline-variant'} p-3 focus:border-primary focus:outline-none`} required />
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setSelected(null)} className="flex-1 bg-surface-variant text-on-surface-variant h-12 rounded-lg font-bold hover:bg-surface-container-high transition-colors">Cancel</button>

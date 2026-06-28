@@ -41,40 +41,23 @@ export default function NewReport() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchWards = async () => {
+    let unsub = () => {};
+    const loadWards = async () => {
       try {
-        if (db) {
-          const snap = await getDocs(collection(db, 'wards'));
+        if (!db) return;
+        const { onSnapshot, query, collection } = await import('firebase/firestore');
+        unsub = onSnapshot(query(collection(db, 'wards')), (snap) => {
           const fetchedWards = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (fetchedWards.length > 0) {
-            setWards(fetchedWards);
-            const uniqueCities = Array.from(new Set(fetchedWards.map(w => w.city).filter(Boolean))).sort();
-            setCities(uniqueCities);
-            return;
-          }
-        }
+          setWards(fetchedWards);
+          const uniqueCities = Array.from(new Set(fetchedWards.map(w => w.city).filter(Boolean))).sort();
+          setCities(uniqueCities);
+        });
       } catch (err) {
-        console.error('Failed to fetch wards from Firestore:', err);
-      }
-      
-      // Fallback if Firestore fails/is empty
-      try {
-        const r = await api.get('/api/wards');
-        setWards(r.data);
-        const uniqueCities = Array.from(new Set(r.data.map(w => w.city).filter(Boolean))).sort();
-        setCities(uniqueCities);
-      } catch {
-        const fallbackWards = [
-          { id: 'ward1', name: 'Ward 1 - Downtown', city: 'Chennai' },
-          { id: 'ward2', name: 'Ward 2 - Westside', city: 'Coimbatore' },
-          { id: 'ward3', name: 'Ward 3 - Eastside', city: 'Madurai' },
-        ];
-        setWards(fallbackWards);
-        setCities(['Chennai', 'Coimbatore', 'Madurai']);
-        toast('Using offline ward list', { icon: '⚠️' });
+        console.error('Failed to load wards from Firestore:', err);
       }
     };
-    fetchWards();
+    loadWards();
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -139,16 +122,25 @@ export default function NewReport() {
     if (step === 3) {
       if (!wardId) { toast.error('Please select a ward'); return; }
       
-      // Submit & Classify
       setUploading(true);
       let url = '';
       if (imageFile) {
         try { url = await compressImage(imageFile); }
-        catch { toast.error('Image processing failed'); setUploading(false); return; }
+        catch (err) { 
+          toast.error('Image processing failed'); 
+          setUploading(false); 
+          return; 
+        }
       }
       
       try {
-        const res = await api.post('/api/reports/classify', { imageUrl: url, description });
+        // Enforce 10-second timeout for AI classification
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const res = await api.post('/api/reports/classify', { imageUrl: url, description }, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
         setClassification(res.data);
         if (res.data.severity) setSeverity(res.data.severity);
         
@@ -156,9 +148,16 @@ export default function NewReport() {
           const nearbyRes = await api.get(`/api/reports/nearby/search?wardId=${wardId}&category=${category}`);
           setNearbyReports(nearbyRes.data || []);
         } catch (err) { console.error('Nearby check failed:', err); }
-      } catch {
-        setClassification({ humanReadable: 'Uncategorized infrastructure issue.' });
-        toast('AI classification unavailable, proceeding with defaults.', { icon: 'ℹ️' });
+      } catch (err) {
+        // Fallback to manual mode if AI fails
+        console.error('AI Classification failed:', err);
+        setClassification({
+          humanReadable: 'AI classification unavailable. Please verify manually.',
+          summary: description,
+          reasoning: 'Fallback mode triggered due to AI timeout or error.',
+          confidence: 0
+        });
+        toast('AI classification unavailable, proceeding with manual mode.', { icon: 'ℹ️' });
       }
       setUploading(false);
     }
@@ -167,7 +166,7 @@ export default function NewReport() {
       setSubmitting(true);
       let url = '';
       if (imageFile) {
-        try { url = await compressImage(imageFile); } catch {}
+        try { url = await compressImage(imageFile); } catch (err) { console.error(err); }
       }
       
       try {
@@ -180,9 +179,22 @@ export default function NewReport() {
           confidence: classification?.confidence || 0,
         });
         toast.success('Report submitted successfully!');
+        
+        // Reset form
+        setStep(1);
+        setCategory('');
+        setDescription('');
+        setImageFile(null);
+        setImagePreview('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        setClassification(null);
+        setNearbyReports([]);
+        
         navigate('/my-reports');
       } catch (err) {
         toast.error('Submission failed. Please try again.');
+        console.error('Submission error:', err);
+      } finally {
         setSubmitting(false);
       }
       return;
@@ -273,7 +285,8 @@ export default function NewReport() {
               <div className="space-y-stack-md">
                 <div>
                   <label className="block font-label-md text-label-md text-on-surface mb-1">Description <span className="text-error">*</span></label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none" rows="4" placeholder="Describe the issue in detail..." />
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-lg border ${!description && step === 2 ? 'border-error bg-error-container/10' : 'border-outline-variant bg-surface-container-lowest'} p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none`} rows="4" placeholder="Describe the issue in detail..." />
+                  {!description && step === 2 && <p className="text-error text-xs mt-1">Description is required.</p>}
                 </div>
                 <div>
                   <label className="block font-label-md text-label-md text-on-surface mb-1">Photo Upload (Optional)</label>
@@ -365,7 +378,20 @@ export default function NewReport() {
                     <p className="font-body-md text-on-surface-variant mb-4">{classification?.reasoning}</p>
                     <div className="flex gap-2 mb-2">
                       <span className="bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded font-bold text-xs uppercase">{category}</span>
-                      <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-bold text-xs uppercase">{severity} Severity</span>
+                      
+                      {classification?.confidence === 0 ? (
+                        <select 
+                          value={severity} 
+                          onChange={(e) => setSeverity(e.target.value)}
+                          className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-bold text-xs uppercase cursor-pointer border-0 outline-none focus:ring-2 focus:ring-secondary"
+                        >
+                          <option value="low">Low Severity</option>
+                          <option value="medium">Medium Severity</option>
+                          <option value="high">High Severity</option>
+                        </select>
+                      ) : (
+                        <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-bold text-xs uppercase">{severity} Severity</span>
+                      )}
                     </div>
                   </div>
                 </>

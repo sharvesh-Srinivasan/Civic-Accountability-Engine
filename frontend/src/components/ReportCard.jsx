@@ -170,6 +170,13 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
     date = new Date();
   }
 
+  let updateDate;
+  try {
+    updateDate = report.updatedAt?.toDate?.() ? report.updatedAt.toDate() : new Date(report.updatedAt || report.createdAt);
+  } catch {
+    updateDate = date;
+  }
+  
   // 1. Cost of Inaction Estimator
   const daysSinceCreation = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
   const daysOpen = daysSinceCreation > 0 ? daysSinceCreation : 1;
@@ -179,8 +186,8 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   // 2. Re-verification Agent
   const effectiveStatus = isReopened ? 'reopened' : report.status;
   const isResolved = report.status === 'resolved';
-  // Mock logic: Trigger reverification if it's resolved and older than ~10 days (simulating 30 days for demo)
-  const isReverificationDue = isResolved && daysOpen > 10 && !isReopened;
+  const daysSinceUpdate = Math.floor((new Date() - updateDate) / (1000 * 60 * 60 * 24));
+  const isReverificationDue = isResolved && daysSinceUpdate >= 30 && !isReopened;
 
   const CardEl = onClick ? 'button' : 'div';
 

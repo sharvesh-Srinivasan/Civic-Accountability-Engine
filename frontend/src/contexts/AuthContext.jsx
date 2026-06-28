@@ -59,7 +59,8 @@ export function AuthProvider({ children }) {
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
   const logout = () => signOut(auth);
 
-  const isAuthority = userDoc?.isAuthority === true;
+  const isAuthority = userDoc?.role === 'authority' || userDoc?.isAuthority === true;
+  const isAdmin = userDoc?.isAdmin === true;
   const isOnboarded = userDoc?.onboardingComplete === true;
 
   const updateOnboarding = async (data) => {
@@ -71,7 +72,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, logout, isAuthority, isOnboarded, updateOnboarding }}>
+    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, logout, isAuthority, isAdmin, isOnboarded, updateOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

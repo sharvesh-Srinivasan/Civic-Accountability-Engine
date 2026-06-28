@@ -9,42 +9,50 @@ service cloud.firestore {
     function isAuthority() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'authority';
     }
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    function isNotSuspended() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return !userDoc.data.keys().hasAll(['isSuspended']) || userDoc.data.isSuspended != true;
+    }
     
     // Users collection
     match /users/{userId} {
       allow read: if true;
-      allow write: if request.auth.uid == userId;
+      allow write: if request.auth.uid == userId || isAdmin();
     }
     
     // Wards collection (readonly publicly, admin writes)
     match /wards/{wardId} {
       allow read: if true;
-      allow write: if false; // Only written via backend/admin script
+      allow write: if isAdmin();
     }
     
-    // WardStats (readonly publicly, updated via cloud functions/backend)
+    // WardStats (readonly publicly, updated via cloud functions/backend/admin)
     match /wardStats/{statId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
     
     // Reports collection
     match /reports/{reportId} {
       allow read: if true;
       allow create: if isSignedIn() 
+                    && isNotSuspended()
                     && request.resource.data.reporterId == request.auth.uid
                     && request.resource.data.severity in ['low', 'medium', 'high']
                     && request.resource.data.status == 'open';
-      // Only the reporter can update (e.g., add photos), or an authority can update status
-      allow update: if (isSignedIn() && resource.data.reporterId == request.auth.uid) || isAuthority();
-      allow delete: if false; // soft delete only, or backend only
+      // Only the reporter can update (e.g., add photos), or an authority can update status, or admin
+      allow update: if (isSignedIn() && isNotSuspended() && resource.data.reporterId == request.auth.uid) || isAuthority() || isAdmin();
+      allow delete: if isAdmin(); // admin can soft/hard delete
     }
     
     // Commitments
     match /commitments/{commitmentId} {
       allow read: if true;
-      // Only authorities can create or update commitments
-      allow write: if isAuthority();
+      // Only authorities or admins can create or update commitments
+      allow write: if isAuthority() || isAdmin();
     }
     
     // Dashboard Insights

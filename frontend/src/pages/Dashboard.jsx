@@ -94,6 +94,7 @@ export default function Dashboard() {
   const [wards, setWards] = useState({}); // id -> city mapping
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState('');
+  const [dataError, setDataError] = useState('');
 
   useEffect(() => {
     if (!authLoading) {
@@ -129,10 +130,15 @@ export default function Dashboard() {
       // Fetch all reports (filtering done in render)
       unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)), snap => {
         setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setDataError(''); // Clear error on successful snapshot
+      }, err => {
+        console.error('Reports snapshot error:', err);
+        setDataError('Failed to load live reports. Please check your connection.');
       });
       setLoading(false);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
+      setDataError('Failed to load dashboard data. Please try refreshing.');
       setLoading(false);
     }
     return unsubReports;
@@ -189,6 +195,13 @@ export default function Dashboard() {
           <li aria-current="page" className="text-on-surface-variant">Dashboard</li>
         </ol>
       </nav>
+
+      {dataError && (
+        <div className="mb-stack-lg bg-error-container text-on-error-container p-4 rounded-xl flex items-center gap-3 border border-error">
+          <span className="material-symbols-outlined">error</span>
+          <p className="font-body-md font-bold">{dataError}</p>
+        </div>
+      )}
 
       {/* Hero Map Section */}
       <section className="bg-surface-container-low border border-primary-fixed-dim rounded-xl flex flex-col relative overflow-hidden mb-stack-lg shadow-sm">

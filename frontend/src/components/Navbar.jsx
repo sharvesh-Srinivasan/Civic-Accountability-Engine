@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
-  const { user, userDoc, isAuthority, logout } = useAuth();
+  const { user, userDoc, isAuthority, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -26,7 +26,9 @@ export default function Navbar() {
           CivicConnect
         </div>
         <div className="flex gap-4">
-          <span className="material-symbols-outlined cursor-pointer active:opacity-80">account_circle</span>
+          <Link to="/profile">
+            <span className="material-symbols-outlined cursor-pointer active:opacity-80">account_circle</span>
+          </Link>
           <span className="material-symbols-outlined cursor-pointer active:opacity-80">notifications</span>
         </div>
       </header>
@@ -53,7 +55,6 @@ export default function Navbar() {
         </div>
         
         <div className="flex-1 px-4 font-label-md text-label-md overflow-y-auto">
-          {/* Active Tab: Dashboard */}
           <Link
             to="/"
             className={`${isActive('/') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed dark:text-on-primary-container' : 'text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-variant'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
@@ -61,6 +62,16 @@ export default function Navbar() {
             <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>dashboard</span>
             Dashboard
           </Link>
+
+          {user && (
+            <Link
+              to="/profile"
+              className={`${isActive('/profile') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/profile') ? "'FILL' 1" : "" }}>person</span>
+              My Profile
+            </Link>
+          )}
 
           {user && (
             <Link
@@ -79,6 +90,16 @@ export default function Navbar() {
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/authority') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
               Authority Portal
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`${isActive('/admin') ? 'bg-primary-fixed dark:bg-primary-container text-on-primary-fixed' : 'text-on-surface-variant hover:bg-surface-container-high'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-all`}
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/admin') ? "'FILL' 1" : "" }}>settings_applications</span>
+              Admin Console
             </Link>
           )}
 

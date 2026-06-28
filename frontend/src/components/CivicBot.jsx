@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 async function generateSmartReply(userMessage) {
   const msg = userMessage.toLowerCase().trim();
-  const reportsSnap = await getDocs(collection(db, 'reports'));
+  const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)));
   let openCount = 0;
   let resolvedCount = 0;
   const wardCounts = {};
@@ -36,10 +36,10 @@ async function generateSmartReply(userMessage) {
   const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
 
   if (/^(hi|hello|hey|howdy|yo|hola|greetings|good morning|good evening)/i.test(msg)) {
-    return `👋 Hello! I'm CivicBot, your civic accountability assistant. I have access to **${totalReports} reports** across your city. Ask me about stats, recent issues, ward performance, or how to file a report!`;
+    return `👋 Hello! I'm CivicBot, your civic accountability assistant. I can give you insights based on the **latest ${totalReports} reports** in your city. Ask me about stats, recent issues, ward performance, or how to file a report!`;
   }
   if (/stat|overview|summary|how many|total|dashboard|number/i.test(msg)) {
-    return `📊 **Live City Stats:**\n\n• **Total Reports:** ${totalReports}\n• **Open Issues:** ${openCount}\n• **Resolved:** ${resolvedCount}\n• **Resolution Rate:** ${resolutionRate}%\n${topWard ? `• **Most Active Area:** ${topWard[0]} (${topWard[1]} reports)` : ''}\n${topCategory ? `• **Top Category:** ${topCategory[0]} (${topCategory[1]} reports)` : ''}`;
+    return `📊 **Recent City Stats (Last ${totalReports} reports):**\n\n• **Open Issues:** ${openCount}\n• **Resolved:** ${resolvedCount}\n• **Resolution Rate:** ${resolutionRate}%\n${topWard ? `• **Most Active Area:** ${topWard[0]} (${topWard[1]} reports)` : ''}\n${topCategory ? `• **Top Category:** ${topCategory[0]} (${topCategory[1]} reports)` : ''}`;
   }
   if (/recent|latest|new|last|today/i.test(msg)) {
     if (recentIssues.length === 0) return '📭 No reports have been filed yet. Be the first to report an issue!';
