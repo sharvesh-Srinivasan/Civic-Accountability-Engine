@@ -26,12 +26,40 @@ export default function Navbar() {
           CivicConnect
         </div>
         <div className="flex gap-4">
-          <Link to="/profile">
-            <span className="material-symbols-outlined cursor-pointer active:opacity-80">account_circle</span>
-          </Link>
           <span className="material-symbols-outlined cursor-pointer active:opacity-80">notifications</span>
         </div>
       </header>
+
+      {/* Mobile BottomNav (Visible only on md:hidden) */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-surface-container-lowest border-t border-outline-variant flex justify-around items-center h-16 z-50 pb-safe">
+        <Link to="/" className={`flex flex-col items-center gap-1 ${isActive('/') ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>dashboard</span>
+          <span className="text-[10px]">Home</span>
+        </Link>
+        {user ? (
+          <>
+            <Link to="/report/new" className={`flex flex-col items-center gap-1 ${isActive('/report/new') ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/report/new') ? "'FILL' 1" : "" }}>add_circle</span>
+              <span className="text-[10px]">Report</span>
+            </Link>
+            <Link to="/profile" className={`flex flex-col items-center gap-1 ${isActive('/profile') ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+              <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/profile') ? "'FILL' 1" : "" }}>person</span>
+              <span className="text-[10px]">Profile</span>
+            </Link>
+            {isAdmin && (
+              <Link to="/admin" className={`flex flex-col items-center gap-1 ${isActive('/admin') ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+                <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/admin') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
+                <span className="text-[10px]">Admin</span>
+              </Link>
+            )}
+          </>
+        ) : (
+          <Link to="/login" className="flex flex-col items-center gap-1 text-on-surface-variant">
+            <span className="material-symbols-outlined text-[24px]">login</span>
+            <span className="text-[10px]">Sign In</span>
+          </Link>
+        )}
+      </nav>
 
       {/* SideNavBar (Hidden on Mobile) */}
       <nav className="hidden md:flex bg-surface-container-low dark:bg-surface-container-lowest text-primary dark:text-primary-fixed-dim h-full w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline flex-col py-stack-lg z-50">
