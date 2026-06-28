@@ -86,7 +86,7 @@ function CommunityMap({ reports, userDoc }) {
 }
 
 export default function Dashboard() {
-  const { user, userDoc, loading: authLoading } = useAuth();
+  const { user, userDoc, loading: authLoading, isOnboarded } = useAuth();
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [insights, setInsights] = useState(null);
@@ -99,11 +99,11 @@ export default function Dashboard() {
     if (!authLoading) {
       if (!user) {
         navigate('/login');
-      } else if (userDoc && !userDoc.onboarded) {
+      } else if (userDoc && !isOnboarded) {
         navigate('/onboarding');
       }
     }
-  }, [user, userDoc, authLoading, navigate]);
+  }, [user, userDoc, authLoading, navigate, isOnboarded]);
 
   const load = useCallback(async () => {
     if (!db) {
