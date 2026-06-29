@@ -19,7 +19,7 @@ export default function Navbar() {
   return (
     <>
       {/* Mobile TopNav (Visible only on md:hidden) */}
-      <header className="md:hidden bg-surface text-navy w-full h-16 border-b border-border flex justify-between items-center px-margin-mobile fixed top-0 z-50">
+      <header className="md:hidden glass-panel text-navy w-full h-16 flex justify-between items-center px-margin-mobile fixed top-0 z-50 rounded-b-2xl shadow-sm">
         <div className="font-serif text-2xl font-bold text-navy">
           CivicConnect
         </div>
@@ -29,38 +29,38 @@ export default function Navbar() {
       </header>
 
       {/* Mobile BottomNav (Visible only on md:hidden) */}
-      <nav className="md:hidden fixed bottom-0 w-full bg-surface border-t border-border flex justify-around items-center h-16 z-50 pb-safe">
-        <Link to="/" className={`flex flex-col items-center gap-1 transition-colors ${isActive('/') ? 'text-navy font-bold' : 'text-muted hover:text-navy'}`}>
+      <nav className="md:hidden fixed bottom-4 left-4 right-4 glass-panel rounded-full flex justify-around items-center h-16 z-50 shadow-glass">
+        <Link to="/" className={`flex flex-col items-center gap-1 transition-all ${isActive('/') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
           <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>local_library</span>
           <span className="text-[10px]">Ledger</span>
         </Link>
         {user ? (
           <>
-            <Link to="/report/new" className={`flex flex-col items-center gap-1 transition-colors ${isActive('/report/new') ? 'text-navy font-bold' : 'text-muted hover:text-navy'}`}>
+            <Link to="/report/new" className={`flex flex-col items-center gap-1 transition-all ${isActive('/report/new') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
               <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/report/new') ? "'FILL' 1" : "" }}>add_a_photo</span>
               <span className="text-[10px]">Log Evidence</span>
             </Link>
-            <Link to="/profile" className={`flex flex-col items-center gap-1 transition-colors ${isActive('/profile') ? 'text-navy font-bold' : 'text-muted hover:text-navy'}`}>
+            <Link to="/profile" className={`flex flex-col items-center gap-1 transition-all ${isActive('/profile') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
               <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/profile') ? "'FILL' 1" : "" }}>person</span>
               <span className="text-[10px]">Profile</span>
             </Link>
             {isAdmin && (
-              <Link to="/admin" className={`flex flex-col items-center gap-1 transition-colors ${isActive('/admin') ? 'text-navy font-bold' : 'text-muted hover:text-navy'}`}>
+              <Link to="/admin" className={`flex flex-col items-center gap-1 transition-all ${isActive('/admin') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
                 <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/admin') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
                 <span className="text-[10px]">Admin</span>
               </Link>
             )}
           </>
         ) : (
-          <Link to="/login" className="flex flex-col items-center gap-1 text-muted hover:text-navy transition-colors">
+          <Link to="/login" className="flex flex-col items-center gap-1 text-muted hover:text-navy transition-all">
             <span className="material-symbols-outlined text-[24px]">login</span>
             <span className="text-[10px]">Sign In</span>
           </Link>
         )}
       </nav>
 
-      {/* SideNavBar (Hidden on Mobile) */}
-      <nav className="hidden md:flex bg-surface text-ink h-full w-64 fixed left-0 top-0 border-r border-border flex-col py-stack-lg z-50 transition-all duration-300 shadow-none">
+      {/* SideNavBar (Hidden on Mobile) - Floating Glass Panel */}
+      <nav className="hidden md:flex glass-panel text-ink h-[calc(100vh-32px)] w-64 fixed left-4 top-4 rounded-3xl flex-col py-stack-lg z-50 transition-all duration-500 hover:shadow-[0_8px_40px_rgba(31,38,135,0.12)]">
         <div className="px-gutter mb-stack-lg">
           <div className="font-serif text-3xl font-bold text-navy mb-2 tracking-tight">
             CivicConnect
@@ -154,22 +154,24 @@ export default function Navbar() {
 
           <div className="mt-stack-lg px-4">
             {user ? (
-              <Link to="/report/new" className="w-full bg-navy text-white h-12 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md hover:scale-[1.02] hover:shadow-md transition-all duration-150">
-                <span className="material-symbols-outlined">add_a_photo</span>
-                Log Evidence
+              <Link to="/report/new" className="w-full bg-navy text-white h-12 rounded-2xl flex items-center justify-center gap-2 font-label-md text-label-md hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                <span className="material-symbols-outlined relative z-10">add_a_photo</span>
+                <span className="relative z-10">Log Evidence</span>
               </Link>
             ) : (
-              <Link to="/login" className="w-full bg-navy text-white h-12 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md hover:scale-[1.02] hover:shadow-md transition-all duration-150">
-                <span className="material-symbols-outlined">login</span>
-                Sign In
+              <Link to="/login" className="w-full bg-navy text-white h-12 rounded-2xl flex items-center justify-center gap-2 font-label-md text-label-md hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                <span className="material-symbols-outlined relative z-10">login</span>
+                <span className="relative z-10">Sign In</span>
               </Link>
             )}
           </div>
         </div>
         
         {user && (
-          <div className="px-4 mt-auto font-label-md text-label-md border-t border-border pt-stack-md">
-            <button onClick={handleLogout} className="w-full text-terracotta hover:bg-terracotta/10 flex items-center gap-4 px-4 py-3 cursor-pointer rounded-lg mb-1 transition-colors duration-150">
+          <div className="px-4 mt-auto font-label-md text-label-md border-t border-border/50 pt-stack-md">
+            <button onClick={handleLogout} className="w-full text-terracotta hover:bg-terracotta/10 flex items-center gap-4 px-4 py-3 cursor-pointer rounded-2xl mb-1 transition-all duration-300 hover:pl-6">
               <span className="material-symbols-outlined">logout</span>
               Sign Out
             </button>

@@ -313,7 +313,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-20 md:pt-margin-desktop bg-paper text-ink min-h-screen font-body-md">
+    <main className="flex-1 md:ml-72 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-24 md:pt-margin-desktop bg-transparent text-ink min-h-screen font-body-md relative z-10">
       
       {/* Breadcrumbs */}
       <nav aria-label="Breadcrumb" className="mb-stack-md animate-fade-in-up" style={{ animationDelay: '0ms' }}>
@@ -332,19 +332,19 @@ export default function Dashboard() {
       )}
 
       {/* Map Section */}
-      <div className="mb-stack-lg bg-surface border border-border rounded-xl shadow-sm overflow-hidden animate-fade-in-up" style={{ animationDelay: '50ms' }}>
-        <div className="p-gutter border-b border-border flex items-center justify-between">
+      <div className="mb-stack-lg glass-panel rounded-3xl shadow-glass overflow-hidden animate-fade-in-up hover:shadow-[0_8px_40px_rgba(31,38,135,0.12)] transition-shadow duration-500" style={{ animationDelay: '50ms' }}>
+        <div className="p-gutter border-b border-white/20 flex items-center justify-between bg-white/40">
           <div className="flex items-center gap-3">
             <span className="material-symbols-outlined text-navy">map</span>
             <h3 className="font-serif text-xl text-ink font-bold">Evidence Map</h3>
           </div>
         </div>
-        <div className="w-full h-[400px] bg-paper relative z-10">
+        <div className="w-full h-[400px] bg-transparent relative z-10">
           <CommunityMap reports={filteredReports} userDoc={userDoc} selectedCity={selectedCity} cityCoords={cityCoords} />
         </div>
       </div>
 
-      <header className="mb-stack-lg flex flex-col md:flex-row md:items-baseline justify-between gap-4 border-b-4 border-navy pb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <header className="mb-stack-lg flex flex-col md:flex-row md:items-baseline justify-between gap-4 pb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div>
           <div className="flex items-center gap-3">
             <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">The Public Trust Ledger</h1>
@@ -388,7 +388,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Link to="/report/new" className="w-full md:w-auto bg-navy text-white h-10 px-4 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md hover:scale-[1.02] hover:shadow-md transition-all duration-150 shrink-0">
+          <Link to="/report/new" className="w-full md:w-auto bg-navy text-white h-10 px-6 rounded-full flex items-center justify-center gap-2 font-label-md text-label-md hover:scale-[1.02] hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 shrink-0">
             <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
             Log Evidence
           </Link>
@@ -396,7 +396,7 @@ export default function Dashboard() {
       </header>
 
       {/* Feature 1: The "Cost of Inaction" Live Ticker */}
-      <div className="mb-stack-lg bg-terracotta/10 border-2 border-terracotta/30 rounded-xl p-6 relative overflow-hidden shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+      <div className="mb-stack-lg bg-gradient-to-br from-terracotta/20 to-terracotta/5 border border-terracotta/30 rounded-4xl p-8 relative overflow-hidden shadow-glow-terracotta animate-fade-in-up hover:scale-[1.01] transition-transform duration-500" style={{ animationDelay: '150ms' }}>
         <div className="absolute -right-10 -top-10 opacity-10 pointer-events-none">
           <span className="material-symbols-outlined text-[150px] text-terracotta">money_off</span>
         </div>
@@ -425,7 +425,7 @@ export default function Dashboard() {
 
       {/* Feature 5: Equity Watch - Silent Issue Detector */}
       {insights?.equityWatch && (
-        <div className="mb-stack-md bg-surface border border-sage p-4 rounded-xl flex items-start gap-3 shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="mb-stack-md glass-panel border-sage/40 p-6 rounded-3xl flex items-start gap-3 shadow-glass animate-fade-in-up hover:-translate-y-1 hover:shadow-glow-sage transition-all duration-300" style={{ animationDelay: '150ms' }}>
           <span className="material-symbols-outlined text-sage mt-0.5">policy</span>
           <div>
             <h3 className="font-label-md font-bold text-ink uppercase tracking-wider text-[11px] mb-1">Equity Watch: Silent Issue Detector</h3>
@@ -438,7 +438,7 @@ export default function Dashboard() {
 
       {/* Feature 3: Ward Trust Score Forecast */}
       {insights?.trustScore && (
-        <div className="mb-stack-md bg-surface border border-border p-gutter rounded-xl relative overflow-hidden shadow-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="mb-stack-md glass-panel border-white/40 p-gutter rounded-3xl relative overflow-hidden shadow-glass animate-fade-in-up hover:-translate-y-1 hover:shadow-[0_8px_40px_rgba(31,38,135,0.12)] transition-all duration-300" style={{ animationDelay: '200ms' }}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-navy/5 rounded-bl-full pointer-events-none"></div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
@@ -468,34 +468,37 @@ export default function Dashboard() {
 
       {/* Stats Overview Bento - Redesigned as Ledger Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-md mb-stack-lg animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-        <div className="bg-surface border-t-4 border-navy border-x border-b border-border rounded-b-xl rounded-t p-gutter flex flex-col justify-between shadow-sm">
+        <div className="glass-panel border-t-[6px] border-t-navy border-x-white/40 border-b-white/40 rounded-3xl p-gutter flex flex-col justify-between shadow-glass hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-navy/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           <div className="flex items-center justify-between mb-2">
-            <span className="font-label-md text-label-md text-muted uppercase tracking-widest">Total Evidence Logged</span>
+            <span className="font-label-md text-label-md text-muted uppercase tracking-widest relative z-10">Total Evidence Logged</span>
           </div>
-          <div className="font-serif text-4xl text-ink">{filteredReports.length}</div>
-          <div className="font-caption text-caption text-muted mt-2 border-t border-border pt-2">Publicly recorded {selectedCity ? `in ${selectedCity}` : 'in network'}</div>
+          <div className="font-serif text-5xl text-ink relative z-10">{filteredReports.length}</div>
+          <div className="font-caption text-caption text-muted mt-2 border-t border-white/20 pt-2 relative z-10">Publicly recorded {selectedCity ? `in ${selectedCity}` : 'in network'}</div>
         </div>
 
-        <div className="bg-surface border-t-4 border-sage border-x border-b border-border rounded-b-xl rounded-t p-gutter flex flex-col justify-between shadow-sm">
+        <div className="glass-panel border-t-[6px] border-t-sage border-x-white/40 border-b-white/40 rounded-3xl p-gutter flex flex-col justify-between shadow-glass hover:-translate-y-1 hover:shadow-glow-sage transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-sage/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           <div className="flex items-center justify-between mb-2">
-            <span className="font-label-md text-label-md text-muted uppercase tracking-widest">Commitments Honored</span>
+            <span className="font-label-md text-label-md text-muted uppercase tracking-widest relative z-10">Commitments Honored</span>
           </div>
-          <div className="font-serif text-4xl text-sage">{resolvedCount}</div>
-          <div className="font-caption text-caption text-muted mt-2 border-t border-border pt-2">Promises kept by authorities</div>
+          <div className="font-serif text-5xl text-sage relative z-10">{resolvedCount}</div>
+          <div className="font-caption text-caption text-muted mt-2 border-t border-white/20 pt-2 relative z-10">Promises kept by authorities</div>
         </div>
 
-        <div className="bg-surface border-t-4 border-terracotta border-x border-b border-border rounded-b-xl rounded-t p-gutter flex flex-col justify-between shadow-sm">
+        <div className="glass-panel border-t-[6px] border-t-terracotta border-x-white/40 border-b-white/40 rounded-3xl p-gutter flex flex-col justify-between shadow-glass hover:-translate-y-1 hover:shadow-glow-terracotta transition-all duration-300 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-b from-terracotta/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
           <div className="flex items-center justify-between mb-2">
-            <span className="font-label-md text-label-md text-muted uppercase tracking-widest">Pending Action</span>
+            <span className="font-label-md text-label-md text-muted uppercase tracking-widest relative z-10">Pending Action</span>
           </div>
-          <div className="font-serif text-4xl text-ink">{openCount}</div>
-          <div className="font-caption text-caption text-muted mt-2 border-t border-border pt-2">Awaiting verification or action</div>
+          <div className="font-serif text-5xl text-ink relative z-10">{openCount}</div>
+          <div className="font-caption text-caption text-muted mt-2 border-t border-white/20 pt-2 relative z-10">Awaiting verification or action</div>
         </div>
       </div>
 
       {/* Feature 4: Cross-Ward Best Practice Matching */}
       {insights?.benchmarking && (
-        <section className="mb-stack-lg bg-surface border border-border p-gutter rounded-xl shadow-sm animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <section className="mb-stack-lg glass-panel border-white/40 p-gutter rounded-3xl shadow-glass animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <div className="flex items-center gap-2 mb-4">
             <span className="material-symbols-outlined text-navy">hub</span>
             <h2 className="font-serif text-2xl text-ink">Cross-Ward Benchmarking</h2>
@@ -519,8 +522,8 @@ export default function Dashboard() {
       )}
 
       {/* Ledger Table */}
-      <section className="bg-surface border border-border rounded-xl mb-stack-lg shadow-sm animate-fade-in-up overflow-hidden" style={{ animationDelay: '350ms' }}>
-        <div className="px-gutter py-4 border-b border-border flex justify-between items-center bg-paper">
+      <section className="glass-panel border border-white/40 rounded-3xl mb-stack-lg shadow-glass animate-fade-in-up overflow-hidden" style={{ animationDelay: '350ms' }}>
+        <div className="px-gutter py-6 border-b border-white/20 flex justify-between items-center bg-white/40">
           <h2 className="font-serif text-2xl text-navy font-bold">Public Ledger Entries</h2>
         </div>
         <div className="overflow-x-auto">

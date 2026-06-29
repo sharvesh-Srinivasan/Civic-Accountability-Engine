@@ -330,10 +330,10 @@ export default function NewReport() {
   }
 
   return (
-    <main className="flex-1 md:ml-64 flex flex-col items-center p-margin-mobile md:p-margin-desktop py-stack-lg bg-paper text-ink min-h-screen pt-24 font-body-md">
-      <div className="w-full max-w-3xl bg-surface rounded-xl border border-border p-gutter shadow-sm">
+    <main className="flex-1 md:ml-72 flex flex-col items-center p-margin-mobile md:p-margin-desktop py-stack-lg bg-transparent text-ink min-h-screen pt-28 font-body-md relative z-10">
+      <div className="w-full max-w-3xl glass-panel rounded-[3rem] p-8 md:p-12 shadow-[0_8px_40px_rgba(31,38,135,0.12)]">
         
-        <header className="mb-stack-lg border-b border-border pb-stack-md flex justify-between items-center">
+        <header className="mb-stack-lg border-b border-white/20 pb-stack-md flex justify-between items-center">
           <div>
             <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">Add Evidence</h1>
             <p className="font-body-md text-muted mt-1">Submit factual proof of a civic issue for the public record.</p>
@@ -394,7 +394,7 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Select a Category</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-stack-md">
                 {categories.map(c => (
-                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-lg border cursor-pointer transition-colors ${category === c.id ? 'border-navy bg-navy/10 ring-2 ring-primary text-navy' : 'border-border hover:bg-surface text-ink'}`}>
+                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-3xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 ${category === c.id ? 'border-navy bg-navy/10 shadow-glow-navy text-navy' : 'border-white/40 glass-panel text-ink hover:shadow-glass'}`}>
                     <input type="radio" name="category" value={c.id} checked={category === c.id} onChange={(e) => setCategory(e.target.value)} className="sr-only" />
                     <span className={`material-symbols-outlined text-4xl mb-1 ${category === c.id ? 'text-navy' : 'text-muted'}`}>{c.icon}</span>
                     <span className="font-label-md text-label-md text-center font-bold">{c.label}</span>
@@ -417,20 +417,20 @@ export default function NewReport() {
                       {isRecording ? 'Listening...' : 'Voice AI'}
                     </button>
                   </div>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-lg border ${!description && step === 2 ? 'border-terracotta bg-terracotta/10/10' : 'border-border bg-surface'} p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none`} rows="4" placeholder="Describe the issue in detail..." />
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-2xl border ${!description && step === 2 ? 'border-terracotta bg-terracotta/10/10' : 'border-white/40 bg-white/40'} p-4 font-body-md focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none shadow-inner`} rows="4" placeholder="Describe the issue in detail..." />
                   {!description && step === 2 && <p className="text-terracotta text-xs mt-1">Description is required.</p>}
                 </div>
                 <div>
                   <label className="block font-label-md text-label-md text-ink mb-1">Photo Upload (Optional)</label>
                   {imagePreview ? (
-                    <div className="relative rounded-lg overflow-hidden border border-border">
+                    <div className="relative rounded-2xl overflow-hidden border border-white/40 shadow-glass">
                       <img src={imagePreview} className="w-full h-48 object-cover" alt="Preview" />
-                      <button onClick={() => {setImagePreview(''); setImageFile(null);}} className="absolute top-2 right-2 bg-surface text-ink p-1 rounded hover:bg-terracotta/10 hover:text-terracotta"><span className="material-symbols-outlined">delete</span></button>
+                      <button onClick={() => {setImagePreview(''); setImageFile(null);}} className="absolute top-2 right-2 bg-white/80 text-terracotta p-1 rounded-lg hover:bg-white shadow-sm backdrop-blur-sm"><span className="material-symbols-outlined">delete</span></button>
                     </div>
                   ) : (
-                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-border rounded-lg p-stack-md flex flex-col items-center justify-center bg-surface hover:bg-surface transition-colors cursor-pointer">
-                      <span className="material-symbols-outlined text-4xl text-muted mb-2">cloud_upload</span>
-                      <span className="font-label-md text-label-md text-navy">Click to upload photo</span>
+                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-navy/30 rounded-3xl p-stack-md flex flex-col items-center justify-center bg-white/20 hover:bg-white/40 transition-colors cursor-pointer shadow-inner hover:shadow-glass">
+                      <span className="material-symbols-outlined text-4xl text-navy/60 mb-2">cloud_upload</span>
+                      <span className="font-label-md text-label-md text-navy font-bold">Click to upload photo</span>
                       <span className="font-caption text-caption text-muted mt-1">JPG, PNG (max. 20MB)</span>
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                     </div>
@@ -447,14 +447,14 @@ export default function NewReport() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                 <div>
                   <label className="block font-label-md text-label-md text-ink mb-1">City <span className="text-terracotta">*</span></label>
-                  <select value={city} onChange={e => { setCity(e.target.value); setWardId(''); }} required className="w-full rounded-lg border border-border bg-surface p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none">
+                  <select value={city} onChange={e => { setCity(e.target.value); setWardId(''); }} required className="w-full rounded-2xl border border-white/40 bg-white/40 p-4 font-body-md focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none shadow-inner">
                     <option value="">Select your city</option>
                     {cities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block font-label-md text-label-md text-ink mb-1">Ward / Area <span className="text-terracotta">*</span></label>
-                  <select value={wardId} onChange={e => setWardId(e.target.value)} required disabled={!city} className="w-full rounded-lg border border-border bg-surface p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50">
+                  <select value={wardId} onChange={e => setWardId(e.target.value)} required disabled={!city} className="w-full rounded-2xl border border-white/40 bg-white/40 p-4 font-body-md focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none disabled:opacity-50 shadow-inner">
                     <option value="">{city ? "Select your ward" : "Select a city first"}</option>
                     {wards.filter(w => w.city === city).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
@@ -504,12 +504,12 @@ export default function NewReport() {
                     </div>
                   )}
 
-                  <div className="bg-surface p-6 rounded-lg border border-border">
+                  <div className="glass-panel p-6 rounded-3xl border border-white/40 shadow-glass">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-label-md text-navy uppercase tracking-wider">AI Assessment</h3>
+                      <h3 className="font-label-md font-bold text-navy uppercase tracking-wider">AI Assessment</h3>
                       <div className="group relative cursor-help flex items-center justify-center">
                         <span className="material-symbols-outlined text-muted text-[18px]">info</span>
-                        <div className="absolute right-0 top-full mt-2 w-64 bg-navy text-white text-xs p-3 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-navy text-white text-xs p-3 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                           Our Civic AI (Gemini) analyzes the visual evidence in your photo to automatically categorize the issue and determine its severity based on proximity to hazards or infrastructure.
                         </div>
                       </div>
@@ -517,20 +517,20 @@ export default function NewReport() {
                     <p className="font-body-lg text-ink mb-2 font-bold">{classification?.humanReadable || 'Evidence Ready for Ledger'}</p>
                     <p className="font-body-md text-muted mb-4">{classification?.reasoning}</p>
                     <div className="flex gap-2 mb-2">
-                      <span className="bg-navy/10 text-navy px-2 py-1 rounded font-bold text-xs uppercase">{category}</span>
+                      <span className="bg-navy/10 text-navy px-3 py-1.5 rounded-full font-bold text-xs uppercase shadow-sm">{category}</span>
                       
                       {classification?.confidence === 0 ? (
                         <select 
                           value={severity} 
                           onChange={(e) => setSeverity(e.target.value)}
-                          className="bg-sage/10 text-sage px-2 py-1 rounded font-bold text-xs uppercase cursor-pointer border-0 outline-none focus:ring-2 focus:ring-secondary"
+                          className="bg-sage/10 text-sage px-3 py-1.5 rounded-full font-bold text-xs uppercase cursor-pointer border-0 outline-none focus:ring-2 focus:ring-secondary shadow-sm"
                         >
                           <option value="low">Low Severity</option>
                           <option value="medium">Medium Severity</option>
                           <option value="high">High Severity</option>
                         </select>
                       ) : (
-                        <span className="bg-sage/10 text-sage px-2 py-1 rounded font-bold text-xs uppercase">{severity} Severity</span>
+                        <span className="bg-sage/10 text-sage px-3 py-1.5 rounded-full font-bold text-xs uppercase shadow-sm">{severity} Severity</span>
                       )}
                     </div>
                   </div>

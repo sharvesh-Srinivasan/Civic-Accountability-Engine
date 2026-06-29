@@ -13,7 +13,7 @@ import { Flag, CheckCircle, Eye, Shield } from 'lucide-react';
 function BadgeIcon({ name, description, Icon, unlocked, progress, total }) {
   const isLocked = !unlocked;
   return (
-    <div className={`w-32 p-3 rounded-xl border flex flex-col items-center text-center transition-all ${isLocked ? 'bg-paper border-border opacity-70 grayscale' : 'bg-sage/10 border-sage'}`}>
+    <div className={`w-32 p-3 rounded-3xl border flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 ${isLocked ? 'bg-white/10 border-white/20 opacity-70 grayscale' : 'glass-panel shadow-glow-sage'}`}>
       <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${isLocked ? 'bg-surface text-muted' : 'bg-sage text-white'}`}>
         <Icon size={20} />
       </div>
@@ -194,7 +194,7 @@ export default function Profile() {
   const resolvedReports = myReports.filter(r => r.status === 'resolved');
 
   return (
-    <main className="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-20 md:pt-margin-desktop bg-paper text-ink min-h-screen font-body-md">
+    <main className="flex-1 md:ml-72 p-margin-mobile md:p-margin-desktop w-full max-w-container-max mx-auto overflow-x-hidden pt-24 md:pt-margin-desktop bg-transparent text-ink min-h-screen font-body-md relative z-10">
       
       <header className="mb-stack-lg animate-fade-in-up">
         <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">My Profile</h1>
@@ -230,7 +230,7 @@ export default function Profile() {
           
           {/* PERSONAL DETAILS */}
           {activeTab === 'details' && (
-            <div className="bg-surface border border-border rounded-xl p-gutter shadow-sm animate-fade-in">
+            <div className="glass-panel rounded-3xl p-gutter shadow-glass animate-fade-in">
               <h2 className="font-headline-sm text-headline-sm mb-6 text-ink">Personal Details</h2>
               <form onSubmit={handleSaveDetails} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,27 +280,27 @@ export default function Profile() {
             <div className="animate-fade-in space-y-6">
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-surface border border-border p-4 rounded-xl text-center">
+                <div className="glass-panel p-4 rounded-3xl text-center shadow-glass hover:-translate-y-1 transition-transform">
                   <div className="font-display-md text-navy">{myReports.length}</div>
                   <div className="font-label-md text-[10px] text-muted uppercase tracking-wider">Reports Filed</div>
                 </div>
-                <div className="bg-surface border border-border p-4 rounded-xl text-center">
+                <div className="glass-panel p-4 rounded-3xl text-center shadow-glass hover:-translate-y-1 transition-transform">
                   <div className="font-display-md text-sage">{resolvedReports.length}</div>
                   <div className="font-label-md text-[10px] text-muted uppercase tracking-wider">Resolved</div>
                 </div>
-                <div className="bg-surface border border-border p-4 rounded-xl text-center">
+                <div className="glass-panel p-4 rounded-3xl text-center shadow-glass hover:-translate-y-1 transition-transform">
                   <div className="font-display-md text-ink">{userDoc?.verifiedReports || 0}</div>
                   <div className="font-label-md text-[10px] text-muted uppercase tracking-wider">Verified</div>
                 </div>
-                <div className="bg-surface border border-border p-4 rounded-xl text-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-navy/5 pointer-events-none"></div>
-                  <div className="font-display-md text-navy">{userDoc?.civicScore || 0}</div>
-                  <div className="font-label-md text-[10px] text-muted uppercase tracking-wider">Civic Score</div>
+                <div className="glass-panel p-4 rounded-3xl text-center relative overflow-hidden shadow-glow-navy hover:-translate-y-1 transition-transform">
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/10 to-transparent pointer-events-none"></div>
+                  <div className="font-display-md text-navy relative z-10">{userDoc?.civicScore || 0}</div>
+                  <div className="font-label-md text-[10px] text-muted uppercase tracking-wider relative z-10">Civic Score</div>
                 </div>
               </div>
 
               {/* Badges Section */}
-              <div className="bg-surface border border-border rounded-xl p-gutter">
+              <div className="glass-panel rounded-3xl p-gutter shadow-glass">
                 <h3 className="font-headline-sm text-headline-sm text-ink mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-amber">military_tech</span>
                   Badges & Achievements
@@ -315,7 +315,7 @@ export default function Profile() {
               </div>
 
               {resolvedReports.length > 0 && (
-                <div className="bg-surface border border-border rounded-xl p-gutter">
+                <div className="glass-panel rounded-3xl p-gutter shadow-glass mt-6">
                   <h3 className="font-headline-sm text-headline-sm text-ink mb-1 flex items-center gap-2">
                     <span className="material-symbols-outlined text-sage">workspace_premium</span>
                     Citizen Impact Receipts
@@ -324,7 +324,7 @@ export default function Profile() {
                   
                   <div className="space-y-4">
                     {resolvedReports.map(r => (
-                      <div key={r.id} className="border border-border rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start bg-surface">
+                      <div key={r.id} className="glass-panel rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-start shadow-sm hover:shadow-glow-sage transition-shadow">
                         <CategoryIcon category={r.category} size={24} />
                         <div className="flex-1">
                           <p className="font-label-md font-bold text-ink capitalize mb-1">{r.category?.replace('_',' ')} fixed in {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'your area'}</p>
@@ -342,7 +342,7 @@ export default function Profile() {
                 </div>
               )}
 
-              <div className="bg-surface border border-border rounded-xl p-gutter">
+              <div className="glass-panel rounded-3xl p-gutter shadow-glass mt-6">
                  <h3 className="font-headline-sm text-headline-sm text-ink mb-4">Reporting History</h3>
                  {loadingReports ? (
                    <p className="text-muted py-4">Loading history...</p>
@@ -367,7 +367,7 @@ export default function Profile() {
 
           {/* MY WARD */}
           {activeTab === 'ward' && (
-            <div className="bg-surface border border-border rounded-xl p-gutter shadow-sm animate-fade-in">
+            <div className="glass-panel rounded-3xl p-gutter shadow-glass animate-fade-in">
               <h2 className="font-headline-sm text-headline-sm mb-2 text-ink">Ward Snapshot</h2>
               <p className="font-body-md text-muted mb-6">Stats for {userDoc?.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'your area'}</p>
               
@@ -397,7 +397,7 @@ export default function Profile() {
 
           {/* NOTIFICATIONS */}
           {activeTab === 'notifications' && (
-            <div className="bg-surface border border-border rounded-xl p-gutter shadow-sm animate-fade-in">
+            <div className="glass-panel rounded-3xl p-gutter shadow-glass animate-fade-in">
               <h2 className="font-headline-sm text-headline-sm mb-6 text-ink">Notifications</h2>
               <div className="space-y-4">
                 <div className="bg-surface border border-border p-4 rounded-lg flex gap-4 items-start opacity-70">
@@ -428,7 +428,7 @@ export default function Profile() {
 
           {/* ACCOUNT & PRIVACY */}
           {activeTab === 'account' && (
-            <div className="bg-surface border border-border rounded-xl p-gutter shadow-sm animate-fade-in space-y-8">
+            <div className="glass-panel rounded-3xl p-gutter shadow-glass animate-fade-in space-y-8">
               
               <section>
                 <h2 className="font-headline-sm text-headline-sm mb-2 text-ink">Account Settings</h2>

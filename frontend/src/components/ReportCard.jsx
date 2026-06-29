@@ -84,7 +84,7 @@ export function PromiseTimeline({ report, commitment }) {
       </div>
       
       {/* Commitment detail */}
-      <div className="bg-surface p-4 mb-6 border border-border rounded-xl shadow-sm hover:shadow transition-shadow">
+      <div className="glass-panel p-4 mb-6 rounded-2xl shadow-sm hover:shadow-glow-navy transition-all duration-300">
         <div className="flex items-center gap-2 mb-1">
           <span className="material-symbols-outlined text-[16px] text-navy">account_balance</span>
           <p className="font-label-md font-bold text-ink">{commitment.authorityName}</p>
@@ -216,7 +216,7 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   return (
     <CardEl
       onClick={onClick}
-      className={`w-full text-left bg-surface border border-border rounded-xl p-5 block transition-all duration-300 hover:shadow-md ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+      className={`w-full text-left glass-panel rounded-3xl p-6 block transition-all duration-500 hover:shadow-[0_8px_40px_rgba(31,38,135,0.12)] ${onClick ? 'cursor-pointer hover:-translate-y-1' : ''}`}
     >
       <div className="flex items-start gap-4">
         <CategoryIcon category={report.category} />
@@ -253,14 +253,15 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
 
           {/* Feature: Civic Cost-of-Inaction Estimator */}
           {!compact && effectiveStatus !== 'resolved' && (
-            <div className="mt-3 bg-surface border border-border p-2.5 rounded-lg w-fit shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 left-0 bottom-0 w-1 bg-outline"></div>
-              <div className="flex items-center gap-1.5 mb-1 pl-2">
-                <span className="material-symbols-outlined text-[14px] text-muted">trending_up</span>
-                <span className="font-label-md text-[10px] font-bold text-ink uppercase tracking-wider">Cost of Delay</span>
+            <div className="mt-4 glass-panel border border-terracotta/20 p-3 rounded-2xl w-fit shadow-glass relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-terracotta/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-terracotta rounded-l-2xl"></div>
+              <div className="flex items-center gap-1.5 mb-1 pl-2 relative z-10">
+                <span className="material-symbols-outlined text-[14px] text-terracotta">trending_up</span>
+                <span className="font-label-md text-[10px] font-bold text-terracotta uppercase tracking-wider">Cost of Delay</span>
               </div>
-              <p className="font-body-sm text-[11px] text-muted pl-2">
-                Estimated cumulative cost to public: <strong className="text-ink">~₹{estimatedCost.toLocaleString()}</strong> <span className="opacity-50">(illustrative estimate)</span>
+              <p className="font-body-sm text-[11px] text-muted pl-2 relative z-10">
+                Estimated cumulative cost to public: <strong className="text-terracotta text-sm">~₹{estimatedCost.toLocaleString()}</strong> <span className="opacity-50 text-[10px]">(illustrative estimate)</span>
               </p>
             </div>
           )}
@@ -269,24 +270,25 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
           {!compact && effectiveStatus !== 'resolved' && daysOpen >= 7 && (
             <div className="mt-3 w-full" onClick={e => e.stopPropagation()}>
               {!showRTI ? (
-                <button onClick={handleGenerateRTI} className="bg-navy text-white text-[11px] font-label-md font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 hover:bg-navy-light transition-colors">
-                  <span className="material-symbols-outlined text-[14px]">gavel</span>
-                  Auto-Draft Legal Notice
+                <button onClick={handleGenerateRTI} className="bg-navy text-white text-[11px] font-label-md font-bold uppercase tracking-widest px-4 py-2 rounded-2xl shadow-glass flex items-center gap-1.5 hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                  <span className="material-symbols-outlined text-[14px] relative z-10">gavel</span>
+                  <span className="relative z-10">Auto-Draft Legal Notice</span>
                 </button>
               ) : (
-                <div className="bg-surface border border-navy rounded-lg p-3 relative shadow-sm">
-                  <div className="flex justify-between items-center mb-2">
+                <div className="glass-panel border-navy/30 rounded-2xl p-4 relative shadow-glow-navy animate-fade-in-up">
+                  <div className="flex justify-between items-center mb-3">
                     <span className="font-label-md text-[11px] font-bold text-navy uppercase tracking-wider flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">gavel</span> AI-Generated RTI Notice</span>
-                    <button onClick={() => setShowRTI(false)} className="text-muted hover:text-ink"><span className="material-symbols-outlined text-[16px]">close</span></button>
+                    <button onClick={() => setShowRTI(false)} className="text-muted hover:text-ink transition-colors"><span className="material-symbols-outlined text-[16px]">close</span></button>
                   </div>
                   {rtiLoading ? (
-                     <div className="flex items-center gap-2 text-muted text-[11px] py-4 justify-center">
+                     <div className="flex items-center gap-2 text-navy text-[11px] py-6 justify-center font-bold tracking-widest uppercase">
                        <span className="material-symbols-outlined animate-spin">sync</span> Drafting legal notice based on ledger evidence...
                      </div>
                   ) : (
                     <div className="relative">
-                      <textarea readOnly value={rtiText} className="w-full h-32 bg-paper border border-border rounded p-2 text-[10px] font-mono text-ink resize-none focus:outline-none" />
-                      <button onClick={() => { navigator.clipboard.writeText(rtiText); toast.success('Notice copied to clipboard!'); }} className="absolute bottom-2 right-2 bg-navy text-white text-[10px] px-2 py-1 rounded shadow-sm hover:bg-navy-light">Copy</button>
+                      <textarea readOnly value={rtiText} className="w-full h-32 bg-white/50 border border-white/40 rounded-xl p-3 text-[10px] font-mono text-ink resize-none focus:outline-none shadow-inner" />
+                      <button onClick={() => { navigator.clipboard.writeText(rtiText); toast.success('Notice copied to clipboard!'); }} className="absolute bottom-3 right-3 bg-navy text-white text-[10px] px-3 py-1.5 rounded-lg shadow-sm hover:-translate-y-0.5 hover:shadow-glow-navy transition-all duration-300">Copy</button>
                     </div>
                   )}
                 </div>
@@ -296,26 +298,27 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
 
           {/* Feature: Accountability Re-Verification Agent */}
           {!compact && isReverificationDue && (
-            <div className="mt-4 bg-navy/10/20 border border-navy p-3 rounded-lg w-full text-left" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-1.5 mb-2">
+            <div className="mt-4 glass-panel border border-navy/20 p-4 rounded-2xl w-full text-left relative overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-navy/5 rounded-bl-full pointer-events-none"></div>
+              <div className="flex items-center gap-1.5 mb-2 relative z-10">
                 <span className="material-symbols-outlined text-[16px] text-navy">fact_check</span>
                 <span className="font-label-md text-[11px] font-bold text-navy uppercase tracking-wider">Accountability Re-Verification</span>
               </div>
-              <p className="font-body-sm text-xs text-ink mb-3 leading-relaxed">
+              <p className="font-body-sm text-xs text-ink mb-4 leading-relaxed relative z-10">
                 This issue was marked resolved over 30 days ago. As a previous reporter, please verify: <strong>Is this still fixed?</strong>
               </p>
-              <div className="flex items-center gap-2">
-                <button className="bg-surface border border-border text-ink px-4 py-1.5 rounded-md text-xs font-bold hover:bg-paper transition-colors" onClick={(e) => { e.stopPropagation(); toast('Thanks for confirming!', {icon:'✅'}); }}>Yes, it holds up</button>
-                <button disabled={isUpdating} className="bg-terracotta text-white px-4 py-1.5 rounded-md text-xs font-bold hover:bg-terracotta/90 transition-colors shadow-sm disabled:opacity-50" onClick={handleReopen}>{isUpdating ? 'Updating...' : 'No, problem returned'}</button>
+              <div className="flex items-center gap-3 relative z-10">
+                <button className="bg-white/80 border border-white/40 text-navy px-4 py-2 rounded-xl text-xs font-bold hover:bg-white hover:-translate-y-0.5 hover:shadow-glass transition-all duration-300" onClick={(e) => { e.stopPropagation(); toast('Thanks for confirming!', {icon:'✅'}); }}>Yes, it holds up</button>
+                <button disabled={isUpdating} className="bg-terracotta text-white px-4 py-2 rounded-xl text-xs font-bold hover:-translate-y-0.5 hover:shadow-glow-terracotta transition-all duration-300 disabled:opacity-50" onClick={handleReopen}>{isUpdating ? 'Updating...' : 'No, problem returned'}</button>
               </div>
             </div>
           )}
 
           {isReopened && (
-             <div className="mt-4 bg-surface text-ink p-3 rounded-lg border border-border shadow-sm" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center gap-2 mb-1">
-                   <span className="material-symbols-outlined text-[16px] text-muted">info</span>
-                   <span className="font-bold text-xs uppercase tracking-wider">Verification Failed</span>
+             <div className="mt-4 glass-panel border border-terracotta/20 text-ink p-4 rounded-2xl shadow-glass" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2 mb-1.5">
+                   <span className="material-symbols-outlined text-[16px] text-terracotta">info</span>
+                   <span className="font-bold text-xs uppercase tracking-wider text-terracotta">Verification Failed</span>
                 </div>
                 <p className="text-[11px] leading-relaxed text-muted">This record was reopened because the public flagged the fix as incomplete. The responsible authority has been notified for follow-up.</p>
              </div>
@@ -340,14 +343,14 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
                   style={{ marginBottom: '16px' }}>
                 <span className="material-symbols-outlined text-[16px]">check_circle</span> Proof of Resolution
               </h4>
-              <div className="grid grid-cols-2 gap-3 h-32 sm:h-48">
-                <div className="relative border border-border group overflow-hidden rounded-xl bg-surface">
-                  <span className="absolute top-2 left-2 bg-surface/80 text-ink text-[10px] uppercase px-2 py-1 font-label-md font-bold tracking-widest backdrop-blur-sm z-10 rounded">Before</span>
-                  <img src={report.imageUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400'} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Before" />
+              <div className="grid grid-cols-2 gap-4 h-32 sm:h-48">
+                <div className="relative border border-white/40 group overflow-hidden rounded-2xl shadow-glass">
+                  <span className="absolute top-2 left-2 bg-white/80 text-navy text-[10px] uppercase px-3 py-1 font-label-md font-bold tracking-widest backdrop-blur-md z-10 rounded-lg shadow-sm">Before</span>
+                  <img src={report.imageUrl || 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Before" />
                 </div>
-                <div className="relative border border-sage group overflow-hidden shadow-sm rounded-xl bg-sage/10">
-                  <span className="absolute top-2 left-2 bg-sage text-white text-[10px] uppercase px-2 py-1 font-label-md font-bold tracking-widest shadow-sm z-10 rounded">After</span>
-                  <img src={commitment.resolutionImageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="After" />
+                <div className="relative border border-sage/40 group overflow-hidden rounded-2xl shadow-glow-sage">
+                  <span className="absolute top-2 left-2 bg-sage text-white text-[10px] uppercase px-3 py-1 font-label-md font-bold tracking-widest shadow-sm z-10 rounded-lg">After</span>
+                  <img src={commitment.resolutionImageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="After" />
                 </div>
               </div>
             </div>

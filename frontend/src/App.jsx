@@ -52,7 +52,7 @@ export default function App() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-paper text-ink selection:bg-navy-light selection:text-white">
+    <div className="min-h-screen mesh-bg relative overflow-x-hidden">
       <ErrorBoundary>
         <Navbar />
         <Routes>
