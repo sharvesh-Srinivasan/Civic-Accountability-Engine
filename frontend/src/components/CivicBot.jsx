@@ -35,6 +35,29 @@ async function generateSmartReply(userMessage) {
   const topWard = Object.entries(wardCounts).sort((a, b) => b[1] - a[1])[0];
   const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
 
+  // Attempt to use Gemini AI backend first
+  try {
+    const { default: api } = await import('../lib/api');
+    const recentIssuesList = recentIssues.slice(0, 5).map(r => `${r.title} (${r.category}) in ${r.ward}`).join('\n');
+    
+    const context = {
+      totalReports,
+      openCount,
+      resolvedCount,
+      topWard: topWard ? `${topWard[0]} (${topWard[1]} reports)` : null,
+      topCategory: topCategory ? `${topCategory[0]} (${topCategory[1]} reports)` : null,
+      recentIssuesList
+    };
+
+    const res = await api.post('/api/reports/chat', { message: userMessage, context });
+    if (res.data && res.data.reply) {
+      return res.data.reply;
+    }
+  } catch (err) {
+    console.warn('AI chat failed or unavailable, using fallback', err);
+  }
+
+  // Fallback regex matching logic if AI fails
   if (/^(hi|hello|hey|howdy|yo|hola|greetings|good morning|good evening)/i.test(msg)) {
     return `👋 Hello! I'm CivicBot, your civic accountability assistant. I can give you insights based on the **latest ${totalReports} reports** in your city. Ask me about stats, recent issues, ward performance, or how to file a report!`;
   }
@@ -113,7 +136,7 @@ export default function CivicBot() {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="text-primary font-bold">{part.slice(2, -2)}</strong>;
+        return <strong key={i} className="text-navy font-bold">{part.slice(2, -2)}</strong>;
       }
       return part;
     });
@@ -123,7 +146,7 @@ export default function CivicBot() {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary-container text-on-primary-container flex items-center justify-center transition-transform hover:scale-105 z-50 rounded-full shadow-lg"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-navy/10 text-navy flex items-center justify-center transition-transform hover:scale-105 z-50 rounded-full shadow-lg"
       >
         <span className="material-symbols-outlined text-[24px]">smart_toy</span>
       </button>
@@ -134,34 +157,34 @@ export default function CivicBot() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-24 right-6 w-80 md:w-96 bg-surface-container-lowest border border-outline-variant flex flex-col overflow-hidden z-50 rounded-xl shadow-lg"
+            className="fixed bottom-24 right-6 w-80 md:w-96 bg-surface border border-border flex flex-col overflow-hidden z-50 rounded-xl shadow-lg"
             style={{ height: '500px' }}
           >
-            <div className="bg-surface-container-low border-b border-outline-variant text-on-surface px-4 py-3 flex items-center justify-between">
+            <div className="bg-surface border-b border-border text-ink px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-navy/10 text-navy flex items-center justify-center">
                   <span className="material-symbols-outlined text-[16px]">smart_toy</span>
                 </div>
-                <span className="font-label-md text-label-md text-primary">CivicBot</span>
-                <span className="text-[10px] bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">LIVE DATA</span>
+                <span className="font-label-md text-label-md text-navy">CivicBot</span>
+                <span className="text-[10px] bg-sage/10 text-sage px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">LIVE DATA</span>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-on-surface-variant hover:text-on-surface transition-colors p-1">
+              <button onClick={() => setIsOpen(false)} className="text-muted hover:text-ink transition-colors p-1">
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-paper">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role === 'bot' && (
-                    <div className="w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed flex flex-shrink-0 items-center justify-center mr-2 mt-1">
+                    <div className="w-6 h-6 rounded-full bg-navy/10 text-navy flex flex-shrink-0 items-center justify-center mr-2 mt-1">
                       <span className="material-symbols-outlined text-[12px]">smart_toy</span>
                     </div>
                   )}
                   <div className={`max-w-[80%] p-3 text-sm font-body-md leading-relaxed whitespace-pre-line ${
                     m.role === 'user' 
-                      ? 'bg-primary text-on-primary rounded-2xl rounded-tr-sm shadow-sm' 
-                      : 'bg-surface-container-lowest border border-outline-variant text-on-surface rounded-2xl rounded-tl-sm shadow-sm'
+                      ? 'bg-navy text-white rounded-2xl rounded-tr-sm shadow-sm' 
+                      : 'bg-surface border border-border text-ink rounded-2xl rounded-tl-sm shadow-sm'
                   }`}>
                     {renderText(m.text)}
                   </div>
@@ -169,31 +192,31 @@ export default function CivicBot() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                   <div className="w-6 h-6 rounded-full bg-primary-fixed text-on-primary-fixed flex flex-shrink-0 items-center justify-center mr-2 mt-1">
+                   <div className="w-6 h-6 rounded-full bg-navy/10 text-navy flex flex-shrink-0 items-center justify-center mr-2 mt-1">
                       <span className="material-symbols-outlined text-[12px]">smart_toy</span>
                    </div>
-                  <div className="bg-surface-container-lowest border border-outline-variant p-3 rounded-2xl rounded-tl-sm flex gap-1 items-center h-10 shadow-sm">
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce delay-75" />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce delay-150" />
+                  <div className="bg-surface border border-border p-3 rounded-2xl rounded-tl-sm flex gap-1 items-center h-10 shadow-sm">
+                    <span className="w-1.5 h-1.5 bg-navy rounded-full animate-bounce" />
+                    <span className="w-1.5 h-1.5 bg-navy rounded-full animate-bounce delay-75" />
+                    <span className="w-1.5 h-1.5 bg-navy rounded-full animate-bounce delay-150" />
                   </div>
                 </div>
               )}
               <div ref={endRef} />
             </div>
 
-            <form onSubmit={handleSend} className="p-3 bg-surface-container-lowest border-t border-outline-variant flex gap-2 items-center">
+            <form onSubmit={handleSend} className="p-3 bg-surface border-t border-border flex gap-2 items-center">
               <input
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask about city stats..."
-                className="flex-1 bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="flex-1 bg-surface border border-border rounded-full px-4 py-2 text-sm text-ink focus:outline-none focus:border-navy focus:ring-1 focus:ring-primary transition-all"
               />
               <button 
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="w-10 h-10 bg-primary hover:bg-primary-container text-on-primary rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-10 h-10 bg-navy hover:bg-navy/10 text-white rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <span className="material-symbols-outlined text-[16px]">send</span>
               </button>

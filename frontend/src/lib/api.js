@@ -13,9 +13,12 @@ api.interceptors.request.use(async (config) => {
     }
   } catch { /* no-op */ }
   
-  // Removed local mock adapter. API calls will now actually hit the backend.
-  // Error handling, timeouts, and fallback logic must be handled by the calling components.
-  config.timeout = 10000; // 10-second timeout to prevent infinite hanging
+  // Default timeout of 15s for all requests unless overridden per-call.
+  // The classify and submit endpoints set their own 30s timeout to allow
+  // for backend cold-start on Render's free tier.
+  if (!config.timeout) {
+    config.timeout = 15000;
+  }
 
   return config;
 });

@@ -37,7 +37,7 @@ export async function classifyReport(imageUrl, description) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
 
     const systemPrompt = `You are a civic issue classifier. Given an image and a short description, return ONLY valid JSON, no markdown formatting, no explanation:
 {
@@ -92,7 +92,7 @@ export async function analyzePattern(reportSummaries, wardId, category) {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
 
     const prompt = `You are a civic pattern analyst. Given this list of reports for one ward and category over the last 30 days: ${JSON.stringify(reportSummaries)}, return ONLY valid JSON:
 {
@@ -116,7 +116,7 @@ export async function generateResolutionPlan(category, severity, description) {
   if (!genAI) return { steps: ['Inspect issue manually', 'Allocate resources', 'Execute repair'], estimatedCost: 'Unknown', departments: ['Public Works'] };
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
     const prompt = `You are an AI city planner and resolution agent. Create a practical resolution plan for this civic issue:
 Category: ${category}
 Severity: ${severity}
@@ -136,3 +136,41 @@ Return ONLY valid JSON (no markdown):
     return { steps: ['Inspect issue manually'], estimatedCost: 'Unknown', departments: ['Public Works'] };
   }
 }
+
+export async function generateChatResponse(userMessage, context) {
+  const genAI = getGenAI();
+  if (!genAI) {
+    throw new Error('Gemini not configured');
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
+    
+    const systemPrompt = `You are CivicBot, a helpful and friendly civic accountability assistant for a city. 
+    You help citizens understand the state of their local infrastructure issues based on live data.
+    
+    Here is the live data context for the city right now:
+    Total Reports: ${context.totalReports}
+    Open Issues: ${context.openCount}
+    Resolved Issues: ${context.resolvedCount}
+    Top Ward: ${context.topWard || 'N/A'}
+    Top Category: ${context.topCategory || 'N/A'}
+    
+    Recent issues reported:
+    ${context.recentIssuesList}
+
+    Keep your answers concise, empathetic, and encouraging. Use emojis where appropriate. 
+    Format important metrics in **bold**. If you don't know the answer based on the context, guide them to use the dashboard or file a new report.`;
+
+    const result = await model.generateContent([
+      { text: systemPrompt },
+      { text: `User: ${userMessage}` }
+    ]);
+    
+    return result.response.text().trim();
+  } catch (err) {
+    console.error('Gemini chat error:', err.message);
+    throw new Error('Failed to generate chat response');
+  }
+}
+

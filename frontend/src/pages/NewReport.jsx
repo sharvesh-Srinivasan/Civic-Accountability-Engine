@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
@@ -133,31 +133,35 @@ export default function NewReport() {
         }
       }
       
+      // Try AI classification with a 30-second window (backend may cold-start)
+      let wakeupToastId;
+      const classifyTimer = setTimeout(() => {
+        wakeupToastId = toast.loading('Waking up AI service… this may take up to 30s on first use.', { duration: 30000 });
+      }, 3000);
+
       try {
-        // Enforce 10-second timeout for AI classification
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const res = await api.post('/api/reports/classify', { imageUrl: url, description }, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const res = await api.post('/api/reports/classify', { imageUrl: url, description }, { timeout: 30000 });
+        clearTimeout(classifyTimer);
+        if (wakeupToastId) toast.dismiss(wakeupToastId);
         
         setClassification(res.data);
         if (res.data.severity) setSeverity(res.data.severity);
         
         try {
-          const nearbyRes = await api.get(`/api/reports/nearby/search?wardId=${wardId}&category=${category}`);
+          const nearbyRes = await api.get(`/api/reports/nearby/search?wardId=${wardId}&category=${category}`, { timeout: 10000 });
           setNearbyReports(nearbyRes.data || []);
-        } catch (err) { console.error('Nearby check failed:', err); }
+        } catch (err) { /* Nearby check is non-critical */ }
       } catch (err) {
+        clearTimeout(classifyTimer);
+        if (wakeupToastId) toast.dismiss(wakeupToastId);
         // Fallback to manual mode if AI fails
-        console.error('AI Classification failed:', err);
         setClassification({
           humanReadable: 'AI classification unavailable. Please verify manually.',
           summary: description,
           reasoning: 'Fallback mode triggered due to AI timeout or error.',
           confidence: 0
         });
-        toast('AI classification unavailable, proceeding with manual mode.', { icon: 'ℹ️' });
+        toast('AI unavailable — you can still submit manually.', { icon: 'ℹ️' });
       }
       setUploading(false);
     }
@@ -168,35 +172,76 @@ export default function NewReport() {
       if (imageFile) {
         try { url = await compressImage(imageFile); } catch (err) { console.error(err); }
       }
-      
+
+      // If user didn't provide location, fallback to profile location, then to 0.
+      // Add a tiny random jitter so multiple reports at the exact same location don't perfectly overlap
+      const jitter = () => (Math.random() - 0.5) * 0.002;
+      const finalLat = parseFloat(lat || userDoc?.lat || 0) + jitter();
+      const finalLng = parseFloat(lng || userDoc?.lng || 0) + jitter();
+
+      const reportPayload = {
+        category, severity, description, imageUrl: url,
+        lat: finalLat, lng: finalLng, wardId,
+        summary: classification?.summary || description,
+        humanReadable: classification?.humanReadable || '',
+        reasoning: classification?.reasoning || '',
+        confidence: classification?.confidence || 0,
+      };
+
+      let submitted = false;
+
+      // Try the backend first (30s timeout)
+      let wakeupToastId;
+      const submitTimer = setTimeout(() => {
+        wakeupToastId = toast.loading('Connecting to backend… please wait.', { duration: 30000 });
+      }, 2000);
+
       try {
-        await api.post('/api/reports', {
-          category, severity, description, imageUrl: url,
-          lat: lat || 0, lng: lng || 0, wardId,
-          summary: classification?.summary || description,
-          humanReadable: classification?.humanReadable || '',
-          reasoning: classification?.reasoning || '',
-          confidence: classification?.confidence || 0,
-        });
-        toast.success('Report submitted successfully!');
-        
-        // Reset form
-        setStep(1);
-        setCategory('');
-        setDescription('');
-        setImageFile(null);
-        setImagePreview('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        setClassification(null);
-        setNearbyReports([]);
-        
-        navigate('/my-reports');
+        await api.post('/api/reports', reportPayload, { timeout: 30000 });
+        clearTimeout(submitTimer);
+        if (wakeupToastId) toast.dismiss(wakeupToastId);
+        submitted = true;
       } catch (err) {
-        toast.error('Submission failed. Please try again.');
-        console.error('Submission error:', err);
-      } finally {
-        setSubmitting(false);
+        clearTimeout(submitTimer);
+        if (wakeupToastId) toast.dismiss(wakeupToastId);
+        console.warn('Backend submission failed, falling back to Firestore direct write:', err.message);
       }
+
+      // Firestore fallback — always works even if backend is down
+      if (!submitted) {
+        try {
+          await addDoc(collection(db, 'reports'), {
+            ...reportPayload,
+            reporterId: user.uid,
+            reporterName: user.displayName || 'Citizen',
+            status: 'open',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          submitted = true;
+          toast.success('Evidence added to the Public Ledger! (Direct mode)');
+        } catch (firestoreErr) {
+          console.error('Firestore fallback also failed:', firestoreErr);
+          toast.error('Submission failed. Check your internet connection and try again.');
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        toast.success('Evidence added to the Public Ledger!');
+      }
+
+      // Reset form
+      setStep(1);
+      setCategory('');
+      setDescription('');
+      setImageFile(null);
+      setImagePreview('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setClassification(null);
+      setNearbyReports([]);
+      setSubmitting(false);
+
+      navigate('/my-reports');
       return;
     }
     setStep(s => s + 1);
@@ -206,10 +251,10 @@ export default function NewReport() {
     try {
       setSubmitting(true);
       await api.post(`/api/reports/${existingId}/confirm`, { lat: parseFloat(lat), lng: parseFloat(lng) });
-      toast.success('Merged! Your voice was added to the existing report.');
+      toast.success('Merged! Your evidence was added to the existing public record.');
       navigate('/');
     } catch {
-      toast.error("Couldn't merge report.");
+      toast.error("Couldn't merge evidence.");
       setSubmitting(false);
     }
   };
@@ -224,38 +269,62 @@ export default function NewReport() {
   ];
 
   if (authLoading || !user) {
-    return <div className="flex-1 flex justify-center items-center h-screen bg-background"><span className="material-symbols-outlined animate-spin text-primary text-4xl">sync</span></div>;
+    return <div className="flex-1 flex justify-center items-center h-screen bg-paper"><span className="material-symbols-outlined animate-spin text-navy text-4xl">sync</span></div>;
   }
 
   return (
-    <main className="flex-1 md:ml-64 flex flex-col items-center p-margin-mobile md:p-margin-desktop py-stack-lg bg-background text-on-background min-h-screen pt-24 font-body-md">
-      <div className="w-full max-w-3xl bg-surface-container-lowest rounded-xl border border-outline-variant p-gutter shadow-sm">
+    <main className="flex-1 md:ml-64 flex flex-col items-center p-margin-mobile md:p-margin-desktop py-stack-lg bg-paper text-ink min-h-screen pt-24 font-body-md">
+      <div className="w-full max-w-3xl bg-surface rounded-xl border border-border p-gutter shadow-sm">
         
-        <header className="mb-stack-lg border-b border-outline-variant pb-stack-md flex justify-between items-center">
+        <header className="mb-stack-lg border-b border-border pb-stack-md flex justify-between items-center">
           <div>
-            <h1 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg">Report Issue</h1>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-1">Please provide details to help us resolve the problem.</p>
+            <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">Add Evidence</h1>
+            <p className="font-body-md text-muted mt-1">Submit factual proof of a civic issue for the public record.</p>
           </div>
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-primary hover:text-primary-fixed-dim transition-colors font-label-md text-label-md">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-muted hover:text-navy transition-colors font-label-md text-label-md p-2 rounded-lg hover:bg-paper">
             <span className="material-symbols-outlined">close</span>
-            <span>Cancel</span>
+            <span className="hidden md:inline">Cancel</span>
           </button>
         </header>
 
-        {/* Progress Bar */}
-        <div className="mb-stack-lg">
-          <div className="flex items-center justify-between relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-surface-container-high rounded-full -z-10"></div>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full -z-10 transition-all duration-300" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+        {/* Animated Timeline */}
+        <div className="mb-12 px-2 md:px-8 pt-4">
+          <div className="flex items-center justify-between w-full relative">
             
-            {['Category', 'Details', 'Location', 'Confirm'].map((label, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-1 bg-surface-container-lowest px-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-label-md text-label-md ${step > idx ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container-high text-on-surface-variant border border-outline-variant'}`}>
-                  {idx + 1}
+            {/* Background Track spanning from center of first node to center of last node */}
+            <div className="absolute left-[20px] right-[20px] top-5 -translate-y-1/2 h-1 bg-border -z-10">
+              {/* Animated Fill Track */}
+              <div 
+                className="h-full bg-navy transition-all duration-700 ease-in-out"
+                style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }}
+              />
+            </div>
+
+            {['Category', 'Details', 'Location', 'Confirm'].map((label, idx) => {
+              const isActive = step === idx + 1;
+              const isCompleted = step > idx + 1;
+
+              return (
+                <div key={idx} className="flex flex-col items-center relative z-10 shrink-0">
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-label-md transition-all duration-500 ease-out border-2 
+                      ${isCompleted ? 'bg-navy border-navy text-white shadow-md' : 
+                        isActive ? 'bg-surface border-navy text-navy shadow-[0_0_0_4px_rgba(22,40,74,0.15)] scale-110' : 
+                        'bg-surface border-border text-muted scale-95'}`}
+                  >
+                    {isCompleted ? <span className="material-symbols-outlined text-[20px] animate-fade-in-up">check</span> : idx + 1}
+                  </div>
+                  {/* Step Label */}
+                  <span 
+                    className={`absolute top-12 whitespace-nowrap font-label-md text-[10px] md:text-xs uppercase tracking-wider transition-all duration-300 
+                      ${isActive ? 'text-navy font-bold translate-y-0 opacity-100' : 
+                        isCompleted ? 'text-ink translate-y-0 opacity-100' : 'text-muted opacity-60 translate-y-1'}`}
+                  >
+                    {label}
+                  </span>
                 </div>
-                <span className={`font-caption text-caption ${step > idx ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>{label}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -268,9 +337,9 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Select a Category</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-stack-md">
                 {categories.map(c => (
-                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-lg border cursor-pointer transition-colors ${category === c.id ? 'border-primary bg-primary-fixed ring-2 ring-primary text-on-primary-fixed' : 'border-outline-variant hover:bg-surface-container-low text-on-surface'}`}>
+                  <label key={c.id} className={`relative flex flex-col items-center p-stack-md rounded-lg border cursor-pointer transition-colors ${category === c.id ? 'border-navy bg-navy/10 ring-2 ring-primary text-navy' : 'border-border hover:bg-surface text-ink'}`}>
                     <input type="radio" name="category" value={c.id} checked={category === c.id} onChange={(e) => setCategory(e.target.value)} className="sr-only" />
-                    <span className={`material-symbols-outlined text-4xl mb-1 ${category === c.id ? 'text-primary' : 'text-on-surface-variant'}`}>{c.icon}</span>
+                    <span className={`material-symbols-outlined text-4xl mb-1 ${category === c.id ? 'text-navy' : 'text-muted'}`}>{c.icon}</span>
                     <span className="font-label-md text-label-md text-center font-bold">{c.label}</span>
                   </label>
                 ))}
@@ -284,22 +353,22 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Provide Details</h2>
               <div className="space-y-stack-md">
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1">Description <span className="text-error">*</span></label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-lg border ${!description && step === 2 ? 'border-error bg-error-container/10' : 'border-outline-variant bg-surface-container-lowest'} p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none`} rows="4" placeholder="Describe the issue in detail..." />
-                  {!description && step === 2 && <p className="text-error text-xs mt-1">Description is required.</p>}
+                  <label className="block font-label-md text-label-md text-ink mb-1">Description <span className="text-terracotta">*</span></label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-lg border ${!description && step === 2 ? 'border-terracotta bg-terracotta/10/10' : 'border-border bg-surface'} p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none`} rows="4" placeholder="Describe the issue in detail..." />
+                  {!description && step === 2 && <p className="text-terracotta text-xs mt-1">Description is required.</p>}
                 </div>
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1">Photo Upload (Optional)</label>
+                  <label className="block font-label-md text-label-md text-ink mb-1">Photo Upload (Optional)</label>
                   {imagePreview ? (
-                    <div className="relative rounded-lg overflow-hidden border border-outline-variant">
+                    <div className="relative rounded-lg overflow-hidden border border-border">
                       <img src={imagePreview} className="w-full h-48 object-cover" alt="Preview" />
-                      <button onClick={() => {setImagePreview(''); setImageFile(null);}} className="absolute top-2 right-2 bg-surface text-on-surface p-1 rounded hover:bg-error-container hover:text-on-error-container"><span className="material-symbols-outlined">delete</span></button>
+                      <button onClick={() => {setImagePreview(''); setImageFile(null);}} className="absolute top-2 right-2 bg-surface text-ink p-1 rounded hover:bg-terracotta/10 hover:text-terracotta"><span className="material-symbols-outlined">delete</span></button>
                     </div>
                   ) : (
-                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-outline-variant rounded-lg p-stack-md flex flex-col items-center justify-center bg-surface-container hover:bg-surface-container-high transition-colors cursor-pointer">
-                      <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">cloud_upload</span>
-                      <span className="font-label-md text-label-md text-primary">Click to upload photo</span>
-                      <span className="font-caption text-caption text-on-surface-variant mt-1">JPG, PNG (max. 20MB)</span>
+                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-border rounded-lg p-stack-md flex flex-col items-center justify-center bg-surface hover:bg-surface transition-colors cursor-pointer">
+                      <span className="material-symbols-outlined text-4xl text-muted mb-2">cloud_upload</span>
+                      <span className="font-label-md text-label-md text-navy">Click to upload photo</span>
+                      <span className="font-caption text-caption text-muted mt-1">JPG, PNG (max. 20MB)</span>
                       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                     </div>
                   )}
@@ -314,26 +383,26 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Pinpoint Location</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1">City <span className="text-error">*</span></label>
-                  <select value={city} onChange={e => { setCity(e.target.value); setWardId(''); }} required className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none">
+                  <label className="block font-label-md text-label-md text-ink mb-1">City <span className="text-terracotta">*</span></label>
+                  <select value={city} onChange={e => { setCity(e.target.value); setWardId(''); }} required className="w-full rounded-lg border border-border bg-surface p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none">
                     <option value="">Select your city</option>
                     {cities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1">Ward / Area <span className="text-error">*</span></label>
-                  <select value={wardId} onChange={e => setWardId(e.target.value)} required disabled={!city} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-md focus:border-primary focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50">
+                  <label className="block font-label-md text-label-md text-ink mb-1">Ward / Area <span className="text-terracotta">*</span></label>
+                  <select value={wardId} onChange={e => setWardId(e.target.value)} required disabled={!city} className="w-full rounded-lg border border-border bg-surface p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50">
                     <option value="">{city ? "Select your ward" : "Select a city first"}</option>
                     {wards.filter(w => w.city === city).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Coordinates (Optional)</label>
+                <label className="block font-label-md text-label-md text-ink mb-1">Coordinates (Optional)</label>
                 <div className="flex gap-2">
-                  <input type="number" value={lat} onChange={e => setLat(e.target.value)} placeholder="Latitude" className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 focus:border-primary focus:outline-none" />
-                  <input type="number" value={lng} onChange={e => setLng(e.target.value)} placeholder="Longitude" className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 focus:border-primary focus:outline-none" />
-                  <button onClick={getLocation} disabled={locLoading} className="bg-surface-variant text-on-surface-variant px-4 rounded-lg hover:bg-surface-container-high flex items-center justify-center">
+                  <input type="number" value={lat} onChange={e => setLat(e.target.value)} placeholder="Latitude" className="w-full rounded-lg border border-border bg-surface p-3 focus:border-navy focus:outline-none" />
+                  <input type="number" value={lng} onChange={e => setLng(e.target.value)} placeholder="Longitude" className="w-full rounded-lg border border-border bg-surface p-3 focus:border-navy focus:outline-none" />
+                  <button onClick={getLocation} disabled={locLoading} className="bg-paper text-muted px-4 rounded-lg hover:bg-surface flex items-center justify-center">
                     {locLoading ? <span className="material-symbols-outlined animate-spin">sync</span> : <span className="material-symbols-outlined">my_location</span>}
                   </button>
                 </div>
@@ -348,49 +417,49 @@ export default function NewReport() {
               
               {uploading && (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <span className="material-symbols-outlined animate-spin text-primary text-4xl mb-4">sync</span>
-                  <p className="font-label-md text-primary">AI is classifying your report...</p>
+                  <span className="material-symbols-outlined animate-spin text-navy text-4xl mb-4">sync</span>
+                  <p className="font-label-md text-navy">AI is classifying your evidence...</p>
                 </div>
               )}
               
               {!uploading && (
                 <>
                   {nearbyReports.length > 0 && (
-                    <div className="bg-error-container text-on-error-container p-4 rounded-lg border border-error mb-4">
+                    <div className="bg-terracotta/10 text-terracotta p-4 rounded-lg border border-terracotta mb-4">
                       <div className="flex gap-2 font-bold mb-2">
                         <span className="material-symbols-outlined">warning</span>
-                        {nearbyReports.length} people nearby reported similar issues
+                        {nearbyReports.length} people nearby provided similar evidence
                       </div>
                       <div className="space-y-2">
                         {nearbyReports.map(nr => (
-                          <div key={nr.id} className="bg-surface-container-lowest p-3 rounded flex justify-between items-center text-sm">
+                          <div key={nr.id} className="bg-surface p-3 rounded flex justify-between items-center text-sm">
                             <span className="truncate flex-1 pr-4">{nr.summary || nr.description}</span>
-                            <button onClick={() => handleMerge(nr.id)} className="bg-error text-on-error px-3 py-1 rounded text-xs font-bold whitespace-nowrap">Add my voice</button>
+                            <button onClick={() => handleMerge(nr.id)} className="bg-terracotta text-white px-3 py-1 rounded text-xs font-bold whitespace-nowrap">Add my voice</button>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  <div className="bg-surface-container-low p-6 rounded-lg border border-outline-variant">
-                    <h3 className="font-label-md text-primary mb-4 uppercase tracking-wider">AI Assessment</h3>
-                    <p className="font-body-lg text-on-surface mb-2 font-bold">{classification?.humanReadable || 'Issue Ready for Submission'}</p>
-                    <p className="font-body-md text-on-surface-variant mb-4">{classification?.reasoning}</p>
+                  <div className="bg-surface p-6 rounded-lg border border-border">
+                    <h3 className="font-label-md text-navy mb-4 uppercase tracking-wider">AI Assessment</h3>
+                    <p className="font-body-lg text-ink mb-2 font-bold">{classification?.humanReadable || 'Evidence Ready for Ledger'}</p>
+                    <p className="font-body-md text-muted mb-4">{classification?.reasoning}</p>
                     <div className="flex gap-2 mb-2">
-                      <span className="bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded font-bold text-xs uppercase">{category}</span>
+                      <span className="bg-navy/10 text-navy px-2 py-1 rounded font-bold text-xs uppercase">{category}</span>
                       
                       {classification?.confidence === 0 ? (
                         <select 
                           value={severity} 
                           onChange={(e) => setSeverity(e.target.value)}
-                          className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-bold text-xs uppercase cursor-pointer border-0 outline-none focus:ring-2 focus:ring-secondary"
+                          className="bg-sage/10 text-sage px-2 py-1 rounded font-bold text-xs uppercase cursor-pointer border-0 outline-none focus:ring-2 focus:ring-secondary"
                         >
                           <option value="low">Low Severity</option>
                           <option value="medium">Medium Severity</option>
                           <option value="high">High Severity</option>
                         </select>
                       ) : (
-                        <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded font-bold text-xs uppercase">{severity} Severity</span>
+                        <span className="bg-sage/10 text-sage px-2 py-1 rounded font-bold text-xs uppercase">{severity} Severity</span>
                       )}
                     </div>
                   </div>
@@ -402,9 +471,9 @@ export default function NewReport() {
         </div>
 
         {/* Footer Nav */}
-        <div className="mt-stack-lg pt-stack-md border-t border-outline-variant flex justify-between items-center">
-          <button onClick={() => setStep(s => s - 1)} className={`px-6 h-12 border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg hover:bg-surface-container-low transition-colors ${step === 1 ? 'invisible' : ''}`}>Back</button>
-          <button onClick={handleNext} disabled={uploading || submitting} className="px-6 h-12 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-surface-tint transition-colors ml-auto flex items-center gap-2">
+        <div className="mt-stack-lg pt-stack-md border-t border-border flex justify-between items-center">
+          <button onClick={() => setStep(s => s - 1)} className={`px-6 h-12 border border-border text-ink font-label-md text-label-md rounded-lg hover:bg-surface transition-colors ${step === 1 ? 'invisible' : ''}`}>Back</button>
+          <button onClick={handleNext} disabled={uploading || submitting} className="px-6 h-12 bg-navy text-white font-label-md text-label-md rounded-lg hover:bg-surface-tint transition-colors ml-auto flex items-center gap-2">
             {submitting ? <span className="material-symbols-outlined animate-spin">sync</span> : (step === 4 ? 'Submit' : 'Continue')}
           </button>
         </div>

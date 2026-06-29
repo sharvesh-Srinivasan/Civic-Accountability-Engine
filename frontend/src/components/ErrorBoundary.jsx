@@ -17,8 +17,8 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-          <div className="bg-error-container text-on-error-container p-8 rounded-xl max-w-md w-full border border-error">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-paper p-6">
+          <div className="bg-terracotta/10 text-terracotta p-8 rounded-xl max-w-md w-full border border-terracotta">
             <div className="flex justify-center mb-4">
               <span className="material-symbols-outlined text-[48px]">warning</span>
             </div>
@@ -29,7 +29,7 @@ export default class ErrorBoundary extends React.Component {
             <div className="flex justify-center">
               <button 
                 onClick={() => window.location.reload()} 
-                className="bg-error text-on-error px-6 py-2 rounded-md font-label-md text-label-md hover:bg-error/90 transition-colors shadow-sm"
+                className="bg-terracotta text-white px-6 py-2 rounded-md font-label-md text-label-md hover:bg-terracotta/90 transition-colors shadow-sm"
               >
                 Reload Page
               </button>

@@ -49,7 +49,7 @@ export default function AnalyticsOverview({ reports }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background/90 backdrop-blur-md border border-white/10 p-3 rounded-lg shadow-glow-cyan">
+        <div className="bg-paper/90 backdrop-blur-md border border-white/10 p-3 rounded-lg shadow-glow-cyan">
           <p className="font-display font-bold uppercase tracking-wider text-[10px] text-white mb-1">{label || payload[0].name}</p>
           <p className="text-neon-cyan font-bold">{payload[0].value} issues</p>
         </div>

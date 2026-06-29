@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../config/firebase.js';
-import { classifyReport, analyzePattern, generateResolutionPlan } from '../services/gemini.js';
+import { classifyReport, analyzePattern, generateResolutionPlan, generateChatResponse } from '../services/gemini.js';
 import { verifyToken } from '../middleware/auth.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -97,6 +97,21 @@ router.post('/classify', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('Classify error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/reports/chat — AI chatbot interaction
+router.post('/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'message required' });
+    }
+    const reply = await generateChatResponse(message, context || {});
+    res.json({ reply });
+  } catch (err) {
+    console.error('Chat error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -203,6 +218,7 @@ router.get('/nearby/search', async (req, res) => {
       
     res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   } catch (err) {
+    console.error('Error fetching nearby reports:', err);
     res.status(500).json({ error: err.message });
   }
 });

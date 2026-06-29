@@ -44,31 +44,31 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-container-lowest flex flex-col md:flex-row font-body-md text-on-surface">
+    <div className="min-h-screen bg-paper flex flex-col md:flex-row font-body-md text-ink">
       
       {/* Left pane: Branding/Info */}
-      <div className="w-full md:w-1/2 bg-surface-container flex flex-col justify-between p-margin-mobile md:p-margin-desktop border-b md:border-b-0 md:border-r border-outline-variant relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 10% 90%, var(--tw-colors-primary) 0%, transparent 50%)' }}></div>
-        <div className="relative z-10">
+      <div className="w-full md:w-1/2 bg-navy flex flex-col justify-between p-margin-mobile md:p-margin-desktop border-b md:border-b-0 md:border-r border-navy-light relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 110%, rgba(255,255,255,0.3) 0%, transparent 50%)' }}></div>
+        <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
           <div className="flex items-center gap-2 mb-stack-lg">
-            <span className="material-symbols-outlined text-[32px] text-primary">account_balance</span>
-            <span className="font-headline-md text-headline-md font-bold text-primary">CivicConnect</span>
+            <span className="material-symbols-outlined text-[32px] text-white">account_balance</span>
+            <span className="font-serif text-2xl font-bold text-white">CivicConnect</span>
           </div>
           
-          <h1 className="font-display-lg text-display-lg text-on-surface mb-stack-md">
-            Your voice in local governance.
+          <h1 className="font-serif text-4xl text-white mb-stack-md leading-tight">
+            The Public Trust<br />Ledger
           </h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-md">
-            Report issues, track authority commitments, and hold your ward accountable with our official civic portal.
+          <p className="font-body-lg text-body-lg text-white/70 max-w-md">
+            Hold local authorities accountable. Every civic commitment, publicly recorded.
           </p>
         </div>
         
-        <div className="relative z-10 hidden md:block">
-          <div className="bg-surface-container-lowest p-gutter rounded-xl border border-outline-variant shadow-sm max-w-sm">
-            <p className="font-label-md text-label-md text-primary mb-2 flex items-center gap-1">
+        <div className="relative z-10 hidden md:block animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <div className="bg-white/10 p-gutter rounded-xl border border-white/20 max-w-sm backdrop-blur-sm">
+            <p className="font-label-md text-label-md text-white mb-2 flex items-center gap-1">
               <span className="material-symbols-outlined text-[16px]">verified</span> Official Portal
             </p>
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-sm text-white/70">
               This system is maintained by the Department of Citizen Services. Your data is secure and protected.
             </p>
           </div>
@@ -76,36 +76,36 @@ export default function Login() {
       </div>
 
       {/* Right pane: Auth Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-surface-bright relative z-10">
-        <div className="w-full max-w-md bg-surface-container-lowest p-gutter rounded-xl shadow-sm border border-outline-variant animate-slide-up">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-paper relative z-10">
+        <div className="w-full max-w-md bg-surface p-gutter rounded-xl shadow-sm border border-border animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           
           <div className="text-center mb-stack-lg">
-            <h2 className="font-headline-lg text-headline-lg text-on-surface">
+            <h2 className="font-headline-lg text-headline-lg text-ink">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+            <p className="font-body-md text-body-md text-muted mt-1">
               {mode === 'login' ? 'Sign in to access your civic dashboard' : 'Join your community network'}
             </p>
           </div>
 
           {/* Toggle */}
-          <div className="flex bg-surface-container rounded-lg p-1 mb-stack-md">
+          <div className="flex bg-paper rounded-lg p-1 mb-stack-md border border-border">
             <button
               onClick={() => { setMode('login'); setError(''); }}
-              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-colors ${mode === 'login' ? 'bg-surface-container-lowest shadow-sm text-primary border border-outline-variant' : 'text-on-surface-variant hover:text-on-surface'}`}
+              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-all duration-150 ${mode === 'login' ? 'bg-navy text-white shadow-sm' : 'text-muted hover:text-ink'}`}
             >
               Sign In
             </button>
             <button
               onClick={() => { setMode('signup'); setError(''); }}
-              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-colors ${mode === 'signup' ? 'bg-surface-container-lowest shadow-sm text-primary border border-outline-variant' : 'text-on-surface-variant hover:text-on-surface'}`}
+              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-all duration-150 ${mode === 'signup' ? 'bg-navy text-white shadow-sm' : 'text-muted hover:text-ink'}`}
             >
               Sign Up
             </button>
           </div>
 
           {error && (
-            <div className="bg-error-container text-on-error-container p-3 rounded-lg mb-stack-md flex items-center gap-2 border border-error font-body-md text-sm">
+            <div className="bg-terracotta/10 text-terracotta p-3 rounded-lg mb-stack-md flex items-center gap-2 border border-terracotta font-body-md text-sm">
               <span className="material-symbols-outlined text-[18px]">error</span>
               <span>{error}</span>
             </div>
@@ -114,14 +114,14 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">Full Name</label>
+                <label className="block font-label-md text-label-md text-ink mb-1">Full Name</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">person</span>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">person</span>
                   <input
                     type="text"
                     value={displayName}
                     onChange={e => setDisplayName(e.target.value)}
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                    className="w-full bg-surface border border-border rounded-lg pl-10 pr-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
                     placeholder="Jane Doe"
                     required
                   />
@@ -130,14 +130,14 @@ export default function Login() {
             )}
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">Email Address</label>
+              <label className="block font-label-md text-label-md text-ink mb-1">Email Address</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">mail</span>
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">mail</span>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg pl-10 pr-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
                   placeholder="name@example.com"
                   required
                 />
@@ -145,14 +145,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">Password</label>
+              <label className="block font-label-md text-label-md text-ink mb-1">Password</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">lock</span>
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">lock</span>
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-10 py-3 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg pl-10 pr-10 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -160,7 +160,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy transition-colors"
                 >
                   <span className="material-symbols-outlined">{showPw ? 'visibility_off' : 'visibility'}</span>
                 </button>
@@ -170,14 +170,14 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg hover:bg-primary-container mt-2 flex items-center justify-center h-[48px]"
+              className="w-full bg-navy text-white font-label-md text-label-md py-3 rounded-lg hover:bg-navy-light hover:scale-[1.01] hover:shadow-md transition-all duration-150 mt-2 flex items-center justify-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100"
             >
               {loading ? <span className="material-symbols-outlined animate-spin">sync</span> : (mode === 'login' ? 'Sign In' : 'Create Account')}
             </button>
           </form>
 
-          <div className="mt-stack-lg text-center pt-stack-md border-t border-outline-variant">
-            <Link to="/" className="font-label-md text-label-md text-primary hover:underline flex items-center justify-center gap-1">
+          <div className="mt-stack-lg text-center pt-stack-md border-t border-border">
+            <Link to="/" className="font-label-md text-label-md text-navy hover:underline flex items-center justify-center gap-1">
               Continue to public dashboard <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </Link>
           </div>
