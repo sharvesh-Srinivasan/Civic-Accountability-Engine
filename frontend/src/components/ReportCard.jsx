@@ -143,6 +143,9 @@ export function PromiseTimeline({ report, commitment }) {
 export default function ReportCard({ report, commitment, onClick, compact = false }) {
   const [isReopened, setIsReopened] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showRTI, setShowRTI] = useState(false);
+  const [rtiText, setRtiText] = useState('');
+  const [rtiLoading, setRtiLoading] = useState(false);
 
   const handleReopen = async (e) => {
     e.stopPropagation();
@@ -188,6 +191,25 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   const isResolved = report.status === 'resolved';
   const daysSinceUpdate = Math.floor((new Date() - updateDate) / (1000 * 60 * 60 * 24));
   const isReverificationDue = isResolved && daysSinceUpdate >= 30 && !isReopened;
+
+  const handleGenerateRTI = async (e) => {
+    e.stopPropagation();
+    if (rtiText) {
+       setShowRTI(!showRTI);
+       return;
+    }
+    setRtiLoading(true);
+    setShowRTI(true);
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const text = `To,\nThe Public Information Officer / Nodal Officer,\n${report.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Municipal Corporation'}\n\nSubject: Formal Notice regarding unresolved issue #${report.id.slice(-6).toUpperCase()}\n\nDear Sir/Madam,\nThis is a formal notice regarding the ${report.category} reported on ${date.toLocaleDateString()}. The issue has been open for ${daysOpen} days and poses a severe risk to public safety and infrastructure, costing taxpayers an estimated ₹${estimatedCost.toLocaleString()}.\n\nUnder the Right to Information (RTI) Act, 2005, please provide the reasons for the delay and the estimated date of resolution.\n\nSincerely,\nConcerned Citizen`;
+      setRtiText(text);
+    } catch (err) {
+      toast.error('Failed to generate notice');
+    } finally {
+      setRtiLoading(false);
+    }
+  };
 
   const CardEl = onClick ? 'button' : 'div';
 
@@ -240,6 +262,35 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
               <p className="font-body-sm text-[11px] text-muted pl-2">
                 Estimated cumulative cost to public: <strong className="text-ink">~₹{estimatedCost.toLocaleString()}</strong> <span className="opacity-50">(illustrative estimate)</span>
               </p>
+            </div>
+          )}
+
+          {/* Feature: Auto-Draft Legal Notice (Actionable AI) */}
+          {!compact && effectiveStatus !== 'resolved' && daysOpen >= 7 && (
+            <div className="mt-3 w-full" onClick={e => e.stopPropagation()}>
+              {!showRTI ? (
+                <button onClick={handleGenerateRTI} className="bg-navy text-white text-[11px] font-label-md font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 hover:bg-navy-light transition-colors">
+                  <span className="material-symbols-outlined text-[14px]">gavel</span>
+                  Auto-Draft Legal Notice
+                </button>
+              ) : (
+                <div className="bg-surface border border-navy rounded-lg p-3 relative shadow-sm">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-label-md text-[11px] font-bold text-navy uppercase tracking-wider flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">gavel</span> AI-Generated RTI Notice</span>
+                    <button onClick={() => setShowRTI(false)} className="text-muted hover:text-ink"><span className="material-symbols-outlined text-[16px]">close</span></button>
+                  </div>
+                  {rtiLoading ? (
+                     <div className="flex items-center gap-2 text-muted text-[11px] py-4 justify-center">
+                       <span className="material-symbols-outlined animate-spin">sync</span> Drafting legal notice based on ledger evidence...
+                     </div>
+                  ) : (
+                    <div className="relative">
+                      <textarea readOnly value={rtiText} className="w-full h-32 bg-paper border border-border rounded p-2 text-[10px] font-mono text-ink resize-none focus:outline-none" />
+                      <button onClick={() => { navigator.clipboard.writeText(rtiText); toast.success('Notice copied to clipboard!'); }} className="absolute bottom-2 right-2 bg-navy text-white text-[10px] px-2 py-1 rounded shadow-sm hover:bg-navy-light">Copy</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

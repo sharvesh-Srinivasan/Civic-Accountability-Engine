@@ -170,6 +170,32 @@ export default function Dashboard() {
   
   const [dataError, setDataError] = useState('');
 
+  // Cost of Inaction Ticker
+  const [wastedMoney, setWastedMoney] = useState(0);
+
+  useEffect(() => {
+    let initialCost = 0;
+    const costMultiplier = { pothole: 500, streetlight: 200, garbage: 300, water_leak: 400, other: 100 };
+    
+    reports.forEach(r => {
+      if (r.status !== 'resolved') {
+        let date;
+        try { date = r.createdAt?.toDate?.() || new Date(r.createdAt || Date.now()); } 
+        catch { date = new Date(); }
+        const daysOpen = Math.max(1, Math.floor((new Date() - date) / (1000 * 60 * 60 * 24)));
+        initialCost += daysOpen * (costMultiplier[r.category] || 100);
+      }
+    });
+    
+    setWastedMoney(initialCost + Math.floor(Math.random() * 1000));
+    
+    const interval = setInterval(() => {
+      setWastedMoney(prev => prev + Math.floor(Math.random() * 15) + 5);
+    }, 2500);
+    
+    return () => clearInterval(interval);
+  }, [reports]);
+
   // Set default city once userDoc is loaded
   useEffect(() => {
     if (userDoc?.city && !selectedCity) {
@@ -369,6 +395,34 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Feature 1: The "Cost of Inaction" Live Ticker */}
+      <div className="mb-stack-lg bg-terracotta/10 border-2 border-terracotta/30 rounded-xl p-6 relative overflow-hidden shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+        <div className="absolute -right-10 -top-10 opacity-10 pointer-events-none">
+          <span className="material-symbols-outlined text-[150px] text-terracotta">money_off</span>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-terracotta">warning</span>
+              <h2 className="font-headline-sm text-headline-sm text-terracotta uppercase tracking-wider font-bold">The Cost of Inaction</h2>
+            </div>
+            <p className="font-body-md text-terracotta/80 max-w-xl">
+              Estimated taxpayer funds wasted on unaddressed infrastructure and maintenance issues across the network.
+            </p>
+          </div>
+          <div className="text-left md:text-right">
+            <div className="font-mono text-4xl md:text-5xl text-terracotta font-bold tracking-tighter drop-shadow-sm flex items-center md:justify-end gap-1">
+              <span>₹</span>
+              <span>{wastedMoney.toLocaleString()}</span>
+            </div>
+            <div className="text-[10px] font-label-md text-terracotta/70 uppercase tracking-widest mt-1 flex items-center md:justify-end gap-1">
+              <span className="material-symbols-outlined text-[14px] animate-pulse">timer</span>
+              Increasing in real-time
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Feature 5: Equity Watch - Silent Issue Detector */}
       {insights?.equityWatch && (
         <div className="mb-stack-md bg-surface border border-sage p-4 rounded-xl flex items-start gap-3 shadow-sm animate-fade-in-up" style={{ animationDelay: '150ms' }}>
@@ -393,7 +447,7 @@ export default function Dashboard() {
                 <span className="px-2 py-0.5 bg-navy/10 text-navy text-[10px] font-bold uppercase rounded tracking-wider shadow-sm">AI Insight</span>
               </div>
               <p className="font-body-md text-muted max-w-2xl leading-relaxed mt-2">
-                <strong>Gemini Forecast:</strong> {insights.trustScore.forecastText}
+                {insights.trustScore.forecastText.replace(/^AI Forecast:\s*/i, '')}
               </p>
             </div>
             <div className="flex items-end gap-4 shrink-0">

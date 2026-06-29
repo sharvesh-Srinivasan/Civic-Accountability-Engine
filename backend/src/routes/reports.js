@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../config/firebase.js';
-import { classifyReport, analyzePattern, generateResolutionPlan, generateChatResponse } from '../services/gemini.js';
+import { classifyReport, analyzePattern, generateResolutionPlan, generateChatResponse, parseVoice } from '../services/gemini.js';
 import { verifyToken } from '../middleware/auth.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -338,6 +338,19 @@ router.post('/prioritize-insight', async (req, res) => {
   } catch (err) {
     console.error('Prioritize AI error:', err);
     res.json({ insight: "High severity issue requiring immediate attention." });
+  }
+});
+
+// POST /api/reports/parse-voice — AI Voice Parsing
+router.post('/parse-voice', async (req, res) => {
+  try {
+    const { transcript } = req.body;
+    if (!transcript) return res.status(400).json({ error: 'Transcript is required' });
+    const result = await parseVoice(transcript);
+    res.json(result);
+  } catch (err) {
+    console.error('Parse voice error:', err);
+    res.status(500).json({ error: 'Failed to parse voice' });
   }
 });
 

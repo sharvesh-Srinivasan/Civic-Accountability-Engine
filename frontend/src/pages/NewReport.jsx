@@ -34,6 +34,59 @@ export default function NewReport() {
   const [severity, setSeverity] = useState('medium');
   const [nearbyReports, setNearbyReports] = useState([]);
 
+  // Voice to text
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      
+      recognitionRef.current.onresult = async (event) => {
+        const transcript = event.results[0][0].transcript;
+        setIsRecording(false);
+        const toastId = toast.loading('Analyzing voice with AI...');
+        try {
+          const res = await api.post('/api/reports/parse-voice', { transcript });
+          toast.success('Voice analyzed! Form auto-filled.', { id: toastId });
+          if (res.data.category && res.data.category !== 'other') setCategory(res.data.category);
+          if (res.data.description) setDescription(res.data.description);
+          else setDescription(transcript);
+        } catch (err) {
+          toast.error('Failed to analyze voice', { id: toastId });
+          setDescription(transcript);
+        }
+      };
+      
+      recognitionRef.current.onerror = (event) => {
+        setIsRecording(false);
+        toast.error('Microphone error: ' + event.error);
+      };
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+       toast.error('Speech recognition not supported in this browser.');
+       return;
+    }
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsRecording(true);
+        toast('Listening...', { icon: '🎙️' });
+      } catch (err) {
+        toast.error('Microphone is already listening');
+      }
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
@@ -357,7 +410,13 @@ export default function NewReport() {
               <h2 className="font-headline-md text-headline-md mb-stack-md">Provide Details</h2>
               <div className="space-y-stack-md">
                 <div>
-                  <label className="block font-label-md text-label-md text-ink mb-1">Description <span className="text-terracotta">*</span></label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-label-md text-label-md text-ink">Description <span className="text-terracotta">*</span></label>
+                    <button type="button" onClick={toggleRecording} className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border transition-colors ${isRecording ? 'bg-terracotta text-white border-terracotta animate-pulse shadow-[0_0_10px_rgba(217,119,87,0.5)]' : 'bg-surface text-navy border-navy hover:bg-navy/10'}`}>
+                      <span className="material-symbols-outlined text-[14px]">{isRecording ? 'mic_none' : 'mic'}</span>
+                      {isRecording ? 'Listening...' : 'Voice AI'}
+                    </button>
+                  </div>
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className={`w-full rounded-lg border ${!description && step === 2 ? 'border-terracotta bg-terracotta/10/10' : 'border-border bg-surface'} p-3 font-body-md focus:border-navy focus:ring-2 focus:ring-primary focus:outline-none`} rows="4" placeholder="Describe the issue in detail..." />
                   {!description && step === 2 && <p className="text-terracotta text-xs mt-1">Description is required.</p>}
                 </div>

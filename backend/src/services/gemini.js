@@ -174,3 +174,29 @@ export async function generateChatResponse(userMessage, context) {
   }
 }
 
+export async function parseVoice(transcript) {
+  const genAI = getGenAI();
+  if (!genAI) {
+    return { category: 'other', description: transcript, severity: 'medium' };
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-8b' });
+    const prompt = `You are an AI assistant parsing voice transcripts of civic issues reported by citizens. 
+    Transcript: "${transcript}"
+    
+    Return ONLY valid JSON (no markdown):
+    {
+      "category": "pothole" | "streetlight" | "garbage" | "water_leak" | "other",
+      "severity": "low" | "medium" | "high",
+      "description": "<clean up the transcript into a coherent, professional description>"
+    }`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch (err) {
+    console.error('Gemini parse voice error:', err.message);
+    return { category: 'other', description: transcript, severity: 'medium' };
+  }
+}
+
