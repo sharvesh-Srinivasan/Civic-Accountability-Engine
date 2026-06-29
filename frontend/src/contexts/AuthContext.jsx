@@ -5,6 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -25,7 +27,31 @@ export function AuthProvider({ children }) {
         const { onSnapshot, doc } = await import('firebase/firestore');
         const docRef = doc(db, 'users', firebaseUser.uid);
         unsubDoc = onSnapshot(docRef, (snap) => {
-          setUserDoc(snap.exists() ? snap.data() : null);
+          if (snap.exists()) {
+            const data = snap.data();
+            setUserDoc(data);
+            
+            // Streak logic
+            const today = new Date().toISOString().split('T')[0];
+            const lastActive = data.lastActiveDate;
+            
+            if (lastActive !== today) {
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              const yesterdayStr = yesterday.toISOString().split('T')[0];
+              
+              let newStreak = data.streak || 0;
+              if (lastActive === yesterdayStr) {
+                newStreak += 1;
+              } else {
+                newStreak = 1;
+              }
+              
+              setDoc(docRef, { streak: newStreak, lastActiveDate: today }, { merge: true }).catch(console.error);
+            }
+          } else {
+            setUserDoc(null);
+          }
         });
       } else {
         if (unsubDoc) unsubDoc();
@@ -48,10 +74,38 @@ export function AuthProvider({ children }) {
         displayName,
         isAuthority: false,
         verifiedReports: 0,
-        civicPoints: 0,
+        civicScore: 0,
+        streak: 0,
+        badges: [],
+        lastActiveDate: new Date().toISOString().split('T')[0],
         onboardingComplete: false,
         createdAt: new Date(),
       });
+    }
+    return cred.user;
+  };
+
+  const loginWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const cred = await signInWithPopup(auth, provider);
+    
+    if (db) {
+      const docRef = doc(db, 'users', cred.user.uid);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          email: cred.user.email,
+          displayName: cred.user.displayName,
+          isAuthority: false,
+          verifiedReports: 0,
+          civicScore: 0,
+          streak: 0,
+          badges: [],
+          lastActiveDate: new Date().toISOString().split('T')[0],
+          onboardingComplete: false,
+          createdAt: new Date(),
+        });
+      }
     }
     return cred.user;
   };
@@ -72,7 +126,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, logout, isAuthority, isAdmin, isOnboarded, updateOnboarding }}>
+    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, loginWithGoogle, logout, isAuthority, isAdmin, isOnboarded, updateOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

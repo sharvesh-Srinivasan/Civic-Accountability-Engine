@@ -8,12 +8,12 @@ import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-const getMarkerStyles = (status) => {
+const getMarkerConfig = (status) => {
   switch(status) {
-    case 'resolved': return 'bg-sage border-white text-white shadow-md';
-    case 'open': return 'bg-terracotta border-white text-white shadow-md animate-pulse';
-    case 'acknowledged': return 'bg-navy border-white text-white shadow-md';
-    default: return 'bg-muted border-white text-white shadow-sm';
+    case 'resolved': return { color: 'bg-sage', glow: 'shadow-[0_0_15px_rgba(107,143,113,0.6)]' };
+    case 'open': return { color: 'bg-terracotta', glow: 'shadow-[0_0_15px_rgba(217,119,87,0.6)]' };
+    case 'acknowledged': return { color: 'bg-navy', glow: 'shadow-[0_0_15px_rgba(44,62,80,0.6)]' };
+    default: return { color: 'bg-muted', glow: 'shadow-[0_0_15px_rgba(149,165,166,0.6)]' };
   }
 };
 
@@ -59,39 +59,30 @@ function MapBoundsFitter({ reports, userLocation }) {
   return null;
 }
 
-function CommunityMap({ reports, userDoc }) {
+function CommunityMap({ reports, userDoc, selectedCity, cityCoords }) {
   const [center, setCenter] = useState({ lat: 11.1271, lng: 78.6569 }); // Default TN
   const [userLocation, setUserLocation] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
-    if (userDoc?.lat && userDoc?.lng) {
+    if (selectedCity && cityCoords && cityCoords[selectedCity]) {
+      // If a city is explicitly selected via filter, fly to its known coordinates
+      const loc = cityCoords[selectedCity];
+      setCenter(loc);
+    } else if (userDoc?.lat && userDoc?.lng) {
+      // Fallback to precise user location
       const loc = { lat: parseFloat(userDoc.lat), lng: parseFloat(userDoc.lng) };
       setCenter(loc);
       setUserLocation(loc);
-    } else if (userDoc?.address || userDoc?.city) {
-      const locationString = userDoc.address || userDoc.city;
-      // Fallback: Geocode the address or city if lat/lng is missing
-      fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationString)}&key=${GOOGLE_MAPS_API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.results?.[0]) {
-            const loc = {
-              lat: data.results[0].geometry.location.lat,
-              lng: data.results[0].geometry.location.lng
-            };
-            setCenter(loc);
-            setUserLocation(loc);
-          }
-        }).catch(console.error);
     } else if (navigator.geolocation) {
+      // Last resort fallback
       navigator.geolocation.getCurrentPosition((pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCenter(loc);
         setUserLocation(loc);
       });
     }
-  }, [userDoc]);
+  }, [userDoc, selectedCity, cityCoords]);
   
   return (
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
@@ -111,15 +102,35 @@ function CommunityMap({ reports, userDoc }) {
 
         {reports.map(r => {
           if (!r.lat || !r.lng) return null;
+          const config = getMarkerConfig(r.status);
+          
           return (
             <AdvancedMarker 
               key={r.id} 
               position={{ lat: parseFloat(r.lat), lng: parseFloat(r.lng) }}
               onClick={() => setSelectedReport(r)}
-              className="group"
+              className="group z-10 hover:z-50"
             >
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:shadow-lg ${getMarkerStyles(r.status)}`}>
-                <span className="material-symbols-outlined text-[16px]">{getCategoryIcon(r.category)}</span>
+              <div className="relative flex items-center justify-center cursor-pointer">
+                {/* Outer pulsing radar ring for open issues */}
+                {r.status === 'open' && (
+                  <div className={`absolute w-full h-full rounded-full animate-ping opacity-60 ${config.color}`}></div>
+                )}
+                
+                {/* Inner glowing core */}
+                <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-white border-[3px] border-white/90 backdrop-blur-md bg-opacity-95 transition-all duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-1 group-hover:border-white ${config.color} ${config.glow}`}>
+                  <span className="material-symbols-outlined text-[20px] drop-shadow-md">{getCategoryIcon(r.category)}</span>
+                </div>
+
+                {/* Floating Glassmorphism Tooltip on Hover */}
+                <div className="absolute bottom-[110%] left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50 flex flex-col items-center transform group-hover:-translate-y-1">
+                   <div className="bg-white/90 backdrop-blur-xl border border-white/50 shadow-xl rounded-xl py-1.5 px-3 flex flex-col items-center">
+                     <p className="text-[10px] font-bold text-navy uppercase tracking-widest whitespace-nowrap mb-0.5">{r.category?.replace('_', ' ')}</p>
+                     {r.severity === 'high' && <span className="w-1.5 h-1.5 rounded-full bg-terracotta shadow-[0_0_5px_rgba(217,119,87,1)]"></span>}
+                   </div>
+                   {/* Tooltip triangle */}
+                   <div className="w-2.5 h-2.5 bg-white/90 rotate-45 -mt-[5px] border-b border-r border-white/50 shadow-sm"></div>
+                </div>
               </div>
             </AdvancedMarker>
           );
@@ -151,8 +162,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [wards, setWards] = useState({}); // id -> city mapping
   const [cities, setCities] = useState([]);
+  const [cityCoords, setCityCoords] = useState({}); // city -> {lat, lng} mapping
+  
   const [selectedCity, setSelectedCity] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [severityFilter, setSeverityFilter] = useState('');
+  
   const [dataError, setDataError] = useState('');
+
+  // Set default city once userDoc is loaded
+  useEffect(() => {
+    if (userDoc?.city && !selectedCity) {
+      setSelectedCity(userDoc.city);
+    }
+  }, [userDoc?.city]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -171,19 +194,24 @@ export default function Dashboard() {
     setLoading(true);
     let unsubReports = () => {};
     try {
-      // Load wards to map wardId to city
+      // Load wards to map wardId to city and store coordinates
       const wardsSnap = await getDocs(collection(db, 'wards'));
       const wardsMap = {};
       const citySet = new Set();
+      const coordsMap = {};
       wardsSnap.docs.forEach(d => {
         const data = d.data();
         if (data.city) {
           wardsMap[d.id] = data.city;
           citySet.add(data.city);
+          if (data.lat && data.lng) {
+            coordsMap[data.city] = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+          }
         }
       });
       setWards(wardsMap);
       setCities(Array.from(citySet).sort());
+      setCityCoords(coordsMap);
 
       // Fetch all reports (filtering done in render)
       unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)), snap => {
@@ -229,14 +257,20 @@ export default function Dashboard() {
     fetchInsights();
   }, [selectedCity]);
 
-  // Filter reports by selected city
+  // Filter reports by selected city, status, and severity
   const filteredReports = reports.filter(r => {
-    if (!selectedCity) return true;
-    return wards[r.wardId] === selectedCity;
+    let match = true;
+    if (selectedCity && wards[r.wardId] !== selectedCity) match = false;
+    if (statusFilter && r.status !== statusFilter) match = false;
+    if (severityFilter && r.severity !== severityFilter) match = false;
+    return match;
   });
 
   const openCount = filteredReports.filter(r => r.status === 'open' || r.status === 'acknowledged').length;
   const resolvedCount = filteredReports.filter(r => r.status === 'resolved').length;
+
+  const myReports = filteredReports.filter(r => r.userId === user?.uid);
+  const otherReports = filteredReports.filter(r => r.userId !== user?.uid);
 
   if (authLoading || !user) {
     return (
@@ -280,23 +314,54 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="w-full h-[400px] bg-paper relative z-10">
-          <CommunityMap reports={filteredReports} userDoc={userDoc} />
+          <CommunityMap reports={filteredReports} userDoc={userDoc} selectedCity={selectedCity} cityCoords={cityCoords} />
         </div>
       </div>
 
       <header className="mb-stack-lg flex flex-col md:flex-row md:items-baseline justify-between gap-4 border-b-4 border-navy pb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div>
-          <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">The Public Trust Ledger</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">The Public Trust Ledger</h1>
+            {userDoc?.streak > 0 && (
+              <div className="flex items-center gap-1 bg-terracotta/10 text-terracotta px-2.5 py-0.5 rounded-full border border-terracotta/20 shadow-sm" title={`${userDoc.streak} day streak!`}>
+                <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
+                <span className="font-bold text-sm">{userDoc.streak}</span>
+              </div>
+            )}
+          </div>
           <p className="font-body-md text-muted mt-2 max-w-2xl">Official, permanent registry of civic commitments and citizen evidence. Track whether authorities are honoring their word.</p>
         </div>
-        <div className="flex flex-col md:flex-row gap-3 md:items-center shrink-0 relative">
-          <div className="relative w-full md:w-48">
-            <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} className="appearance-none w-full rounded bg-surface p-2.5 pr-8 border border-border font-label-md focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none text-ink shadow-sm cursor-pointer transition-colors hover:bg-paper">
-              <option value="">All Regions</option>
-              {cities.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none">expand_more</span>
+        <div className="flex flex-col md:flex-row gap-3 md:items-center shrink-0 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+          <div className="flex gap-2 flex-1 md:flex-none shrink-0">
+            <div className="relative w-full md:w-40 shrink-0">
+              <select value={selectedCity} onChange={e => setSelectedCity(e.target.value)} className="appearance-none w-full rounded bg-surface p-2.5 pr-8 border border-border font-label-md text-sm focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none text-ink shadow-sm cursor-pointer transition-colors hover:bg-paper">
+                <option value="">All Regions</option>
+                {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none text-sm">expand_more</span>
+            </div>
+            
+            <div className="relative w-full md:w-32 shrink-0">
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="appearance-none w-full rounded bg-surface p-2.5 pr-8 border border-border font-label-md text-sm focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none text-ink shadow-sm cursor-pointer transition-colors hover:bg-paper">
+                <option value="">All Statuses</option>
+                <option value="open">Pending</option>
+                <option value="acknowledged">Acknowledged</option>
+                <option value="resolved">Honored</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none text-sm">expand_more</span>
+            </div>
+
+            <div className="relative w-full md:w-32 shrink-0">
+              <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)} className="appearance-none w-full rounded bg-surface p-2.5 pr-8 border border-border font-label-md text-sm focus:border-navy focus:ring-1 focus:ring-navy focus:outline-none text-ink shadow-sm cursor-pointer transition-colors hover:bg-paper">
+                <option value="">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none text-sm">expand_more</span>
+            </div>
           </div>
+
           <Link to="/report/new" className="w-full md:w-auto bg-navy text-white h-10 px-4 rounded-lg flex items-center justify-center gap-2 font-label-md text-label-md hover:scale-[1.02] hover:shadow-md transition-all duration-150 shrink-0">
             <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
             Log Evidence
@@ -426,45 +491,80 @@ export default function Dashboard() {
                 </tr>
               ) : filteredReports.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-muted">No records found for this area.</td>
+                  <td colSpan="5" className="py-8 text-center text-muted">No records found matching filters.</td>
                 </tr>
-              ) : filteredReports.map(r => {
-                const dateStr = r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown';
-                const isResolved = r.status === 'resolved';
-                
-                return (
-                  <tr key={r.id} className="hover:bg-paper transition-colors bg-surface">
-                    <td className="py-4 px-gutter text-muted text-sm font-mono tracking-wider">
-                      {r.id.slice(0,8).toUpperCase()}
-                    </td>
-                    <td className="py-4 px-gutter text-ink font-bold capitalize">
-                      {r.category?.replace('_', ' ')}
-                      {r.severity === 'high' && <span className="ml-2 inline-flex items-center text-[10px] uppercase font-sans font-bold tracking-widest text-terracotta">High Priority</span>}
-                    </td>
-                    <td className="py-4 px-gutter text-muted text-sm">
-                      <Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline font-bold transition-colors">
-                        {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown Area'}
-                      </Link>
-                    </td>
-                    <td className="py-4 px-gutter text-muted text-sm">{dateStr}</td>
-                    <td className="py-4 px-gutter">
-                      {isResolved ? (
-                        <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage">
-                          <span className="material-symbols-outlined text-[16px]">verified</span> Honored
-                        </span>
-                      ) : r.status === 'open' ? (
-                        <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted">
-                          <span className="material-symbols-outlined text-[16px]">history</span> Pending
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-navy">
-                          <span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged
-                        </span>
+              ) : (
+                <>
+                  {myReports.length > 0 && (
+                    <>
+                      <tr className="bg-paper">
+                        <td colSpan="5" className="py-2 px-gutter">
+                          <span className="font-label-md text-xs font-bold uppercase tracking-wider text-navy">My Evidence</span>
+                        </td>
+                      </tr>
+                      {myReports.map(r => (
+                        <tr key={r.id} className="hover:bg-paper transition-colors bg-surface border-l-4 border-navy">
+                          <td className="py-4 px-gutter pl-4 text-muted text-sm font-mono tracking-wider">{r.id.slice(0,8).toUpperCase()}</td>
+                          <td className="py-4 px-gutter text-ink font-bold capitalize">
+                            {r.category?.replace('_', ' ')}
+                            {r.severity === 'high' && <span className="ml-2 inline-flex items-center text-[10px] uppercase font-sans font-bold tracking-widest text-terracotta">High Priority</span>}
+                          </td>
+                          <td className="py-4 px-gutter text-muted text-sm">
+                            <Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline font-bold transition-colors">
+                              {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown Area'}
+                            </Link>
+                          </td>
+                          <td className="py-4 px-gutter text-muted text-sm">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown'}</td>
+                          <td className="py-4 px-gutter">
+                            {r.status === 'resolved' ? (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage"><span className="material-symbols-outlined text-[16px]">verified</span> Honored</span>
+                            ) : r.status === 'open' ? (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted"><span className="material-symbols-outlined text-[16px]">history</span> Pending</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-navy"><span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                  {otherReports.length > 0 && (
+                    <>
+                      {myReports.length > 0 && (
+                        <tr className="bg-paper">
+                          <td colSpan="5" className="py-2 px-gutter border-t border-border mt-4">
+                            <span className="font-label-md text-xs font-bold uppercase tracking-wider text-muted">Community Evidence</span>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                  </tr>
-                )
-              })}
+                      {otherReports.map(r => (
+                        <tr key={r.id} className="hover:bg-paper transition-colors bg-surface">
+                          <td className="py-4 px-gutter text-muted text-sm font-mono tracking-wider">{r.id.slice(0,8).toUpperCase()}</td>
+                          <td className="py-4 px-gutter text-ink font-bold capitalize">
+                            {r.category?.replace('_', ' ')}
+                            {r.severity === 'high' && <span className="ml-2 inline-flex items-center text-[10px] uppercase font-sans font-bold tracking-widest text-terracotta">High Priority</span>}
+                          </td>
+                          <td className="py-4 px-gutter text-muted text-sm">
+                            <Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline font-bold transition-colors">
+                              {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown Area'}
+                            </Link>
+                          </td>
+                          <td className="py-4 px-gutter text-muted text-sm">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown'}</td>
+                          <td className="py-4 px-gutter">
+                            {r.status === 'resolved' ? (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage"><span className="material-symbols-outlined text-[16px]">verified</span> Honored</span>
+                            ) : r.status === 'open' ? (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted"><span className="material-symbols-outlined text-[16px]">history</span> Pending</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-navy"><span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         </div>

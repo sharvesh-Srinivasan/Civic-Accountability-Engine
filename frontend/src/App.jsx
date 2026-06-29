@@ -12,6 +12,7 @@ import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import AuthorityProfile from './pages/AuthorityProfile';
+import Leaderboard from './pages/Leaderboard';
 import CivicBot from './components/CivicBot';
 
 function PrivateRoute({ children }) {
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/authority" element={<AuthorityRoute><AuthorityView /></AuthorityRoute>} />
           <Route path="/registry/:wardId" element={<AuthorityProfile />} />
+          <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

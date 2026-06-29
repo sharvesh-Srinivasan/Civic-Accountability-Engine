@@ -80,7 +80,14 @@ export default function Navbar() {
               </div>
               <div>
                 <p className="font-label-md text-label-md truncate max-w-[120px] text-ink">{user.displayName || 'Citizen'}</p>
-                {isAuthority && <p className="font-caption text-caption text-sage font-bold uppercase tracking-wider">Authority</p>}
+                {isAuthority ? (
+                  <p className="font-caption text-caption text-sage font-bold uppercase tracking-wider">Authority</p>
+                ) : (
+                  <div className="flex items-center gap-1 mt-0.5" title="Civic Score">
+                    <span className="material-symbols-outlined text-[14px] text-terracotta">military_tech</span>
+                    <span className="font-caption text-caption font-bold text-navy">{userDoc?.civicScore || 0} pts</span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -95,6 +102,14 @@ export default function Navbar() {
           >
             <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>local_library</span>
             Public Ledger
+          </Link>
+
+          <Link
+            to="/leaderboard"
+            className={`${isActive('/leaderboard') ? 'bg-navy text-white shadow-sm' : 'text-muted hover:bg-navy-surface hover:text-navy'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-colors duration-150 ease-out`}
+          >
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/leaderboard') ? "'FILL' 1" : "" }}>emoji_events</span>
+            Leaderboard
           </Link>
 
           {user && (

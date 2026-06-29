@@ -205,6 +205,18 @@ export default function CivicBot() {
               <div ref={endRef} />
             </div>
 
+            <div className="p-3 bg-surface border-t border-border flex gap-2 overflow-x-auto scrollbar-hide shrink-0">
+              {['What is the resolution rate?', 'Which ward has the most issues?', 'Are there any open potholes?'].map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setInput(suggestion)}
+                  className="whitespace-nowrap px-3 py-1.5 bg-paper border border-border rounded-full text-xs font-label-md text-navy hover:bg-navy hover:text-white transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSend} className="p-3 bg-surface border-t border-border flex gap-2 items-center">
               <input
                 type="text"

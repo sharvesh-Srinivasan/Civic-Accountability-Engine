@@ -59,6 +59,8 @@ export default function Onboarding() {
   const [formData, setFormData] = useState({
     fullName: userDoc?.displayName || '',
     phone: '',
+    occupation: '',
+    bio: '',
     street: '',
     locality: '',
     city: '',
@@ -165,6 +167,25 @@ export default function Onboarding() {
                   className="w-full bg-surface border border-border rounded-lg px-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
                   value={formData.phone} onChange={handleChange}
                   placeholder="+1 234 567 8900"
+                />
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-ink mb-1 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">work</span> Occupation / Expertise (Optional)</label>
+                <input
+                  type="text" name="occupation"
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={formData.occupation} onChange={handleChange}
+                  placeholder="e.g. Civil Engineer, Student, Lawyer"
+                />
+              </div>
+              <div>
+                <label className="block font-label-md text-label-md text-ink mb-1 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">edit_note</span> Civic Bio (Optional)</label>
+                <textarea
+                  name="bio"
+                  className="w-full bg-surface border border-border rounded-lg px-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
+                  value={formData.bio} onChange={handleChange}
+                  placeholder="A short description of your civic goals or interests"
+                  rows="2"
                 />
               </div>
             </div>

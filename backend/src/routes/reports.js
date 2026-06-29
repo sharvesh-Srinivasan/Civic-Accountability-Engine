@@ -4,6 +4,25 @@ import { classifyReport, analyzePattern, generateResolutionPlan, generateChatRes
 import { verifyToken } from '../middleware/auth.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
+async function checkWardGuardian(userId, wardId) {
+  if (!userId || !wardId) return;
+  try {
+    const topUsers = await db.collection('users')
+      .where('wardId', '==', wardId)
+      .orderBy('civicScore', 'desc')
+      .limit(3)
+      .get();
+    
+    if (topUsers.docs.some(d => d.id === userId)) {
+      await db.collection('users').doc(userId).set({
+        badges: FieldValue.arrayUnion('Ward Guardian')
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.error("Ward Guardian check failed:", err);
+  }
+}
+
 const router = express.Router();
 
 // POST /api/reports — create a new report
@@ -40,10 +59,12 @@ router.post('/', verifyToken, async (req, res) => {
 
     const docRef = await db.collection('reports').add(report);
 
-    // Award Civic Points for reporting
+    // Award Civic Score and badge for reporting
     await db.collection('users').doc(req.user.uid).set({
-      civicPoints: FieldValue.increment(10)
+      civicScore: FieldValue.increment(10),
+      badges: FieldValue.arrayUnion('First Report')
     }, { merge: true });
+    await checkWardGuardian(req.user.uid, wardId);
 
     // Update wardStats open count
     const statsRef = db.collection('wardStats').doc(`${wardId}_${category}`);
@@ -177,7 +198,7 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
 
     // If resolved, update wardStats
     if (status === 'resolved') {
-      const { wardId, category, createdAt } = reportDoc.data();
+      const { wardId, category, createdAt, reporterId } = reportDoc.data();
       const statsRef = db.collection('wardStats').doc(`${wardId}_${category}`);
       const statsDoc = await statsRef.get();
       const existing = statsDoc.data() || {};
@@ -192,6 +213,26 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
         avgResolutionDays: Math.round(newAvg * 10) / 10,
         lastUpdated: new Date(),
       }, { merge: true });
+
+      // Award +20 to original reporter
+      if (reporterId) {
+        const reporterRef = db.collection('users').doc(reporterId);
+        await reporterRef.set({
+          civicScore: FieldValue.increment(20),
+          resolvedReportsCount: FieldValue.increment(1)
+        }, { merge: true });
+        
+        const reporterSnap = await reporterRef.get();
+        if (reporterSnap.exists) {
+          const data = reporterSnap.data();
+          if (data.resolvedReportsCount >= 3) {
+            await reporterRef.set({
+              badges: FieldValue.arrayUnion('Verified Reporter')
+            }, { merge: true });
+          }
+          await checkWardGuardian(reporterId, data.wardId);
+        }
+      }
     }
 
     res.json({ success: true });
@@ -255,10 +296,23 @@ router.post('/:id/confirm', verifyToken, async (req, res) => {
       lastConfirmedAt: new Date()
     });
     
-    // Award Civic Points for verifying
-    await db.collection('users').doc(req.user.uid).set({
-      civicPoints: FieldValue.increment(5)
+    // Award Civic Score for verifying
+    const userRef = db.collection('users').doc(req.user.uid);
+    await userRef.set({
+      civicScore: FieldValue.increment(5),
+      verificationsGiven: FieldValue.increment(1)
     }, { merge: true });
+
+    const userDocSnap = await userRef.get();
+    if (userDocSnap.exists) {
+      const data = userDocSnap.data();
+      if (data.verificationsGiven >= 10) {
+        await userRef.set({
+          badges: FieldValue.arrayUnion('Community Watch')
+        }, { merge: true });
+      }
+      await checkWardGuardian(req.user.uid, data.wardId);
+    }
     
     res.json({ success: true, weight });
   } catch (err) {

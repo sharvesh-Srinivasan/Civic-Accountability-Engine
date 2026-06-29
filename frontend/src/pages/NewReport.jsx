@@ -77,18 +77,22 @@ export default function NewReport() {
         const img = new Image();
         img.src = event.target.result;
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 600;
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 600;
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          } catch (e) {
+            reject(new Error('Failed to compress image properly.'));
+          }
         };
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('Browser could not process this image format. Try a JPG or PNG.'));
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error('Failed to read file.'));
     });
   };
 
@@ -127,7 +131,7 @@ export default function NewReport() {
       if (imageFile) {
         try { url = await compressImage(imageFile); }
         catch (err) { 
-          toast.error('Image processing failed'); 
+          toast.error(err.message || 'Image processing failed'); 
           setUploading(false); 
           return; 
         }
@@ -442,7 +446,15 @@ export default function NewReport() {
                   )}
 
                   <div className="bg-surface p-6 rounded-lg border border-border">
-                    <h3 className="font-label-md text-navy mb-4 uppercase tracking-wider">AI Assessment</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-label-md text-navy uppercase tracking-wider">AI Assessment</h3>
+                      <div className="group relative cursor-help flex items-center justify-center">
+                        <span className="material-symbols-outlined text-muted text-[18px]">info</span>
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-navy text-white text-xs p-3 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                          Our Civic AI (Gemini) analyzes the visual evidence in your photo to automatically categorize the issue and determine its severity based on proximity to hazards or infrastructure.
+                        </div>
+                      </div>
+                    </div>
                     <p className="font-body-lg text-ink mb-2 font-bold">{classification?.humanReadable || 'Evidence Ready for Ledger'}</p>
                     <p className="font-body-md text-muted mb-4">{classification?.reasoning}</p>
                     <div className="flex gap-2 mb-2">

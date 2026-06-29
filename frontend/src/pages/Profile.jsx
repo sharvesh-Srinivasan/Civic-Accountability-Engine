@@ -8,6 +8,32 @@ import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { StatusBadge, CategoryIcon } from '../components/ReportCard';
 import api from '../lib/api'; // For geolocation/ward logic if needed
+import { Flag, CheckCircle, Eye, Shield } from 'lucide-react';
+
+function BadgeIcon({ name, description, Icon, unlocked, progress, total }) {
+  const isLocked = !unlocked;
+  return (
+    <div className={`w-32 p-3 rounded-xl border flex flex-col items-center text-center transition-all ${isLocked ? 'bg-paper border-border opacity-70 grayscale' : 'bg-sage/10 border-sage'}`}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${isLocked ? 'bg-surface text-muted' : 'bg-sage text-white'}`}>
+        <Icon size={20} />
+      </div>
+      <h4 className="font-label-md text-xs font-bold text-ink mb-1">{name}</h4>
+      <p className="text-[9px] text-muted uppercase tracking-wider mb-2 leading-tight h-6">{description}</p>
+      
+      {isLocked && total > 1 && (
+        <div className="w-full mt-auto">
+          <div className="flex justify-between text-[9px] font-bold text-muted mb-1">
+            <span>{Math.min(progress, total)}</span>
+            <span>{total}</span>
+          </div>
+          <div className="w-full h-1 bg-border rounded-full overflow-hidden">
+            <div className="h-full bg-navy transition-all" style={{ width: `${Math.min((progress / total) * 100, 100)}%` }}></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Profile() {
   const { user, userDoc, logout } = useAuth();
@@ -19,11 +45,12 @@ export default function Profile() {
   const [wardInsight, setWardInsight] = useState(null);
   const [loadingReports, setLoadingReports] = useState(true);
 
-  // Forms
   const [details, setDetails] = useState({
     displayName: '',
     phone: '',
     address: '',
+    bio: '',
+    occupation: '',
     preferredCategories: []
   });
   const [isSavingDetails, setIsSavingDetails] = useState(false);
@@ -36,6 +63,8 @@ export default function Profile() {
         displayName: userDoc.displayName || '',
         phone: userDoc.phone || '',
         address: userDoc.address || '',
+        bio: userDoc.bio || '',
+        occupation: userDoc.occupation || '',
         preferredCategories: userDoc.preferredCategories || []
       });
     }
@@ -140,7 +169,15 @@ export default function Profile() {
       await deleteUser(user);
       navigate('/login');
     } catch (err) {
-      toast.error('Failed to delete account. Please sign in again and try.');
+      if (err.code === 'auth/requires-recent-login') {
+        toast.error('For security, you must log out and log back in to delete your account.');
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 3000);
+      } else {
+        toast.error(err.message || 'Failed to delete account.');
+      }
       setIsDeleting(false);
     }
   };
@@ -205,6 +242,14 @@ export default function Profile() {
                     <label className="block font-label-md text-label-md text-ink mb-1">Phone Number</label>
                     <input type="tel" value={details.phone} onChange={e=>setDetails({...details, phone:e.target.value})} className="w-full rounded-lg border border-border p-3 focus:border-navy focus:outline-none" />
                   </div>
+                  <div>
+                    <label className="block font-label-md text-label-md text-ink mb-1">Occupation / Expertise</label>
+                    <input type="text" value={details.occupation} onChange={e=>setDetails({...details, occupation:e.target.value})} className="w-full rounded-lg border border-border p-3 focus:border-navy focus:outline-none" placeholder="e.g. Civil Engineer, Student, Lawyer" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-label-md text-label-md text-ink mb-1">Civic Bio</label>
+                  <textarea value={details.bio} onChange={e=>setDetails({...details, bio:e.target.value})} className="w-full rounded-lg border border-border p-3 focus:border-navy focus:outline-none" rows="2" placeholder="A short description of your civic goals or interests" />
                 </div>
                 <div>
                   <label className="block font-label-md text-label-md text-ink mb-1">Residential Address</label>
@@ -249,8 +294,23 @@ export default function Profile() {
                 </div>
                 <div className="bg-surface border border-border p-4 rounded-xl text-center relative overflow-hidden">
                   <div className="absolute inset-0 bg-navy/5 pointer-events-none"></div>
-                  <div className="font-display-md text-navy">{userDoc?.civicPoints || 0}</div>
+                  <div className="font-display-md text-navy">{userDoc?.civicScore || 0}</div>
                   <div className="font-label-md text-[10px] text-muted uppercase tracking-wider">Civic Score</div>
+                </div>
+              </div>
+
+              {/* Badges Section */}
+              <div className="bg-surface border border-border rounded-xl p-gutter">
+                <h3 className="font-headline-sm text-headline-sm text-ink mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber">military_tech</span>
+                  Badges & Achievements
+                </h3>
+                
+                <div className="flex flex-wrap gap-4">
+                  <BadgeIcon name="First Report" description="Filed your first report" Icon={Flag} unlocked={userDoc?.badges?.includes('First Report')} progress={myReports.length > 0 ? 1 : 0} total={1} />
+                  <BadgeIcon name="Verified Reporter" description="3 reports resolved" Icon={CheckCircle} unlocked={userDoc?.badges?.includes('Verified Reporter')} progress={userDoc?.resolvedReportsCount || 0} total={3} />
+                  <BadgeIcon name="Community Watch" description="10 verifications given" Icon={Eye} unlocked={userDoc?.badges?.includes('Community Watch')} progress={userDoc?.verificationsGiven || 0} total={10} />
+                  <BadgeIcon name="Ward Guardian" description="Top 3 in your ward" Icon={Shield} unlocked={userDoc?.badges?.includes('Ward Guardian')} progress={userDoc?.badges?.includes('Ward Guardian') ? 1 : 0} total={1} />
                 </div>
               </div>
 
