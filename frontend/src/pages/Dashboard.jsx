@@ -466,6 +466,69 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Feature 6: Civic Quests (Bounties) */}
+      <section className="mb-stack-lg animate-fade-in-up" style={{ animationDelay: '220ms' }}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber">local_activity</span>
+            <h2 className="font-serif text-2xl text-navy font-bold">Active Community Quests</h2>
+          </div>
+          <span className="text-[10px] uppercase font-bold text-muted tracking-widest">Ends in 2d 14h</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Quest 1 */}
+          <div className="glass-panel border-white/40 p-5 rounded-3xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+            <div className="relative z-10 flex gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber to-orange-400 text-white flex items-center justify-center shrink-0 shadow-glow-terracotta">
+                <span className="material-symbols-outlined">construction</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-label-md font-bold text-ink">Pothole Patrol</h3>
+                  <span className="bg-amber/20 text-amber text-xs font-bold px-2 py-0.5 rounded-full">+50 Score</span>
+                </div>
+                <p className="font-body-sm text-muted text-sm mt-1">Log 3 infrastructure hazards in your ward.</p>
+                <div className="mt-4">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                    <span>Progress</span>
+                    <span>1 / 3</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-black/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber rounded-full w-[33%]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Quest 2 */}
+          <div className="glass-panel border-white/40 p-5 rounded-3xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-sage/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+            <div className="relative z-10 flex gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sage to-emerald-600 text-white flex items-center justify-center shrink-0 shadow-glow-sage">
+                <span className="material-symbols-outlined">verified</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-label-md font-bold text-ink">Truth Seeker</h3>
+                  <span className="bg-sage/20 text-sage text-xs font-bold px-2 py-0.5 rounded-full">+30 Score</span>
+                </div>
+                <p className="font-body-sm text-muted text-sm mt-1">Verify 2 pending reports from your neighbors.</p>
+                <div className="mt-4">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+                    <span>Progress</span>
+                    <span>1 / 2</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-black/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-sage rounded-full w-[50%]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Overview Bento - Redesigned as Ledger Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-md mb-stack-lg animate-fade-in-up" style={{ animationDelay: '250ms' }}>
         <div className="glass-panel border-t-[6px] border-t-navy border-x-white/40 border-b-white/40 rounded-3xl p-gutter flex flex-col justify-between shadow-glass hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">

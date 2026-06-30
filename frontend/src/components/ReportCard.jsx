@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import api from '../lib/api';
 import toast from 'react-hot-toast';
 
 /* ── Category config ─────────────────────────────────────── */
@@ -146,6 +147,10 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
   const [showRTI, setShowRTI] = useState(false);
   const [rtiText, setRtiText] = useState('');
   const [rtiLoading, setRtiLoading] = useState(false);
+  
+  const goal = report.crowdfundGoal || 200;
+  const [pledged, setPledged] = useState(report.crowdfundRaised || 0);
+  const [isPledging, setIsPledging] = useState(false);
 
   const handleReopen = async (e) => {
     e.stopPropagation();
@@ -162,6 +167,22 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
       toast.error('Failed to reopen the report.');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handlePledge = async (e) => {
+    e.stopPropagation();
+    if (isPledging) return;
+    setIsPledging(true);
+    try {
+      await api.post(`/api/reports/${report.id}/fund`, { amount: 10 });
+      setPledged(prev => prev + 10);
+      toast.success('Pledged $10! Thank you for your civic action.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to process pledge.');
+    } finally {
+      setIsPledging(false);
     }
   };
 
@@ -201,11 +222,12 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
     setRtiLoading(true);
     setShowRTI(true);
     try {
-      await new Promise(r => setTimeout(r, 1500));
-      const text = `To,\nThe Public Information Officer / Nodal Officer,\n${report.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Municipal Corporation'}\n\nSubject: Formal Notice regarding unresolved issue #${report.id.slice(-6).toUpperCase()}\n\nDear Sir/Madam,\nThis is a formal notice regarding the ${report.category} reported on ${date.toLocaleDateString()}. The issue has been open for ${daysOpen} days and poses a severe risk to public safety and infrastructure, costing taxpayers an estimated ₹${estimatedCost.toLocaleString()}.\n\nUnder the Right to Information (RTI) Act, 2005, please provide the reasons for the delay and the estimated date of resolution.\n\nSincerely,\nConcerned Citizen`;
-      setRtiText(text);
+      const res = await api.get(`/api/reports/${report.id}/rti`);
+      setRtiText(res.data.rtiText);
     } catch (err) {
+      console.error(err);
       toast.error('Failed to generate notice');
+      setRtiText('Failed to generate RTI. Please try again later.');
     } finally {
       setRtiLoading(false);
     }
@@ -293,6 +315,32 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Feature: Civic Crowdfunding */}
+          {!compact && commitment && commitment.status === 'broken' && (
+            <div className="mt-4 glass-panel border border-terracotta/20 p-4 rounded-2xl w-full text-left relative overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-terracotta/5 rounded-bl-full pointer-events-none"></div>
+              <div className="flex items-center gap-1.5 mb-2 relative z-10">
+                <span className="material-symbols-outlined text-[16px] text-terracotta">volunteer_activism</span>
+                <span className="font-label-md text-[11px] font-bold text-terracotta uppercase tracking-wider">Crowdfund a Fix</span>
+              </div>
+              <p className="font-body-sm text-xs text-ink mb-3 leading-relaxed relative z-10">
+                The authority broke their promise. Instead of waiting indefinitely, you can pledge funds to hire a private contractor to fix this.
+              </p>
+              <div className="mb-3">
+                <div className="flex justify-between text-[10px] font-bold text-muted mb-1 uppercase tracking-widest">
+                  <span>${pledged} Raised</span>
+                  <span>Goal: ${goal}</span>
+                </div>
+                <div className="w-full bg-surface-highest h-2 rounded-full overflow-hidden">
+                  <div className="bg-terracotta h-full transition-all duration-1000" style={{ width: `${Math.min((pledged / goal) * 100, 100)}%` }}></div>
+                </div>
+              </div>
+              <button disabled={isPledging} onClick={handlePledge} className="bg-terracotta text-white px-4 py-2 rounded-xl text-xs font-bold hover:-translate-y-0.5 hover:shadow-glow-terracotta transition-all duration-300 disabled:opacity-50 relative z-10">
+                {isPledging ? 'Processing...' : 'Pledge $10'}
+              </button>
             </div>
           )}
 

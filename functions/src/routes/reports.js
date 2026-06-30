@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../config/firebase.js';
-import { classifyReport, analyzePattern, generateResolutionPlan, generateChatResponse, parseVoice, verifyResolution, generateRTI } from '../services/gemini.js';
+import { classifyReport, analyzePattern, generateResolutionPlan, generateChatResponse, parseVoice } from '../services/gemini.js';
 import { verifyToken } from '../middleware/auth.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -351,78 +351,6 @@ router.post('/parse-voice', async (req, res) => {
   } catch (err) {
     console.error('Parse voice error:', err);
     res.status(500).json({ error: 'Failed to parse voice' });
-  }
-});
-// POST /api/reports/:id/verify-resolution — AI Before & After Validation (Feature 1)
-router.post('/:id/verify-resolution', verifyToken, async (req, res) => {
-  try {
-    if (!db) return res.status(503).json({ error: 'DB not configured' });
-    const { afterImageUrl } = req.body;
-    if (!afterImageUrl) return res.status(400).json({ error: 'afterImageUrl is required' });
-
-    const reportRef = db.collection('reports').doc(req.params.id);
-    const reportDoc = await reportRef.get();
-    if (!reportDoc.exists) return res.status(404).json({ error: 'Not found' });
-
-    const data = reportDoc.data();
-    
-    // Call AI to verify
-    const verifyResult = await verifyResolution(data.imageUrl, afterImageUrl);
-    
-    // Determine status (if verified -> resolved, if disputed -> disputed)
-    const newStatus = verifyResult.verified ? 'resolved' : 'disputed';
-    
-    await reportRef.update({
-      status: newStatus,
-      verificationStatus: verifyResult.verified ? 'verified' : 'disputed',
-      verificationReasoning: verifyResult.reasoning,
-      afterImageUrl: afterImageUrl,
-      updatedAt: new Date()
-    });
-
-    res.json({ success: true, verified: verifyResult.verified, reasoning: verifyResult.reasoning });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/reports/:id/rti — Automated RTI/FOIA Generation (Feature 2)
-router.get('/:id/rti', verifyToken, async (req, res) => {
-  try {
-    if (!db) return res.status(503).json({ error: 'DB not configured' });
-    const reportRef = db.collection('reports').doc(req.params.id);
-    const reportDoc = await reportRef.get();
-    if (!reportDoc.exists) return res.status(404).json({ error: 'Not found' });
-
-    const data = reportDoc.data();
-    const rtiText = await generateRTI(data);
-
-    res.json({ rtiText });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/reports/:id/fund — Civic Crowdfunding (Feature 4)
-router.post('/:id/fund', verifyToken, async (req, res) => {
-  try {
-    if (!db) return res.status(503).json({ error: 'DB not configured' });
-    const { amount } = req.body;
-    const pledgeAmount = parseFloat(amount) || 10; // Default $10 pledge
-
-    const reportRef = db.collection('reports').doc(req.params.id);
-    const reportDoc = await reportRef.get();
-    if (!reportDoc.exists) return res.status(404).json({ error: 'Not found' });
-
-    // In a real app, integrate Stripe here. For now, increment raised amount.
-    await reportRef.update({
-      crowdfundRaised: FieldValue.increment(pledgeAmount),
-      crowdfundGoal: reportDoc.data().crowdfundGoal || 200 // Default goal $200
-    });
-
-    res.json({ success: true, pledged: pledgeAmount });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 

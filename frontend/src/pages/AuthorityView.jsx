@@ -130,18 +130,43 @@ export default function AuthorityView() {
     finally { setChecking(false); }
   };
 
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) return toast.error('Photo must be < 5MB');
+      setResPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setResPhotoPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleResolveCommitment = async (e) => {
     e.preventDefault();
     if (!resolving) return;
+    if (!resPhotoPreview) {
+       toast.error('Please upload an "After" photo for AI verification.');
+       return;
+    }
     setIsResolving(true);
     try {
-      await api.post(`/api/commitments/${resolving.id}/resolve`, { resolutionImageUrl: '' });
-      toast.success('Commitment marked as honored');
+      const verifyRes = await api.post(`/api/reports/${resolving.reportId}/verify-resolution`, { afterImageUrl: resPhotoPreview });
+      
+      if (!verifyRes.data.verified) {
+         toast.error(`AI Verification Failed: ${verifyRes.data.reasoning}`, { duration: 6000 });
+         setIsResolving(false);
+         return;
+      }
+
+      await api.post(`/api/commitments/${resolving.id}/resolve`, { resolutionImageUrl: resPhotoPreview });
+      toast.success('AI Verified & Commitment honored!');
       setResolving(null);
       setResPhotoFile(null);
       setResPhotoPreview('');
       await load();
-    } catch { toast.error('Failed to resolve'); }
+    } catch (err) { 
+      toast.error('Failed to resolve or verify. Ensure backend AI is configured.'); 
+    }
     finally { setIsResolving(false); }
   };
 
@@ -368,10 +393,28 @@ export default function AuthorityView() {
               <h3 className="font-headline-md text-headline-md text-sage">Mark as Resolved</h3>
             </div>
             <form onSubmit={handleResolveCommitment} className="p-6 space-y-4">
-              <p className="font-body-md text-body-md text-muted mb-4">Confirm that you have completed the promised action for this issue.</p>
+              <p className="font-body-md text-body-md text-muted mb-4">Please upload an "After" photo. Our AI will verify that the issue has been successfully resolved.</p>
+              
+              <div className="flex flex-col gap-2">
+                {!resPhotoPreview ? (
+                  <button type="button" onClick={() => resFileInputRef.current?.click()} className="h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center text-muted hover:border-navy hover:text-navy transition-colors">
+                    <span className="material-symbols-outlined text-3xl mb-1">add_a_photo</span>
+                    <span className="font-label-md text-sm">Upload "After" Photo</span>
+                  </button>
+                ) : (
+                  <div className="relative h-32 rounded-xl overflow-hidden group">
+                    <img src={resPhotoPreview} alt="Resolution" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => { setResPhotoFile(null); setResPhotoPreview(''); }} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                )}
+                <input type="file" accept="image/*" ref={resFileInputRef} onChange={handlePhotoSelect} className="hidden" />
+              </div>
+
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setResolving(null)} className="flex-1 bg-paper text-muted h-12 rounded-lg font-bold hover:bg-surface transition-colors">Cancel</button>
-                <button type="submit" disabled={isResolving} className="flex-1 bg-sage text-white h-12 rounded-lg font-bold hover:bg-sage-fixed transition-colors">{isResolving ? 'Resolving...' : 'Confirm'}</button>
+                <button type="button" onClick={() => { setResolving(null); setResPhotoFile(null); setResPhotoPreview(''); }} className="flex-1 bg-paper text-muted h-12 rounded-lg font-bold hover:bg-surface transition-colors">Cancel</button>
+                <button type="submit" disabled={isResolving} className="flex-1 bg-sage text-white h-12 rounded-lg font-bold hover:bg-sage-fixed transition-colors">{isResolving ? 'Verifying AI...' : 'Verify & Resolve'}</button>
               </div>
             </form>
           </div>
