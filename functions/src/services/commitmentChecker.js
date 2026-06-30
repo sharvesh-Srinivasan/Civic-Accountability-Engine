@@ -9,6 +9,7 @@ export async function checkAndUpdateCommitments() {
     .get();
 
   const results = { honored: 0, broken: 0, pending: 0 };
+  const updatedAuthorities = new Set();
 
   for (const doc of snapshot.docs) {
     const commitment = doc.data();
@@ -37,6 +38,10 @@ export async function checkAndUpdateCommitments() {
 
     await doc.ref.update({ status: newStatus, updatedAt: now });
 
+    if (commitment.createdBy && newStatus !== null) {
+      updatedAuthorities.add(commitment.createdBy);
+    }
+
     // Update wardStats brokenCommitments or resolvedCount
     if (newStatus === 'broken') {
       // We need wardId — get from report
@@ -51,6 +56,25 @@ export async function checkAndUpdateCommitments() {
           );
         }
       } catch { /* ignore */ }
+    }
+  }
+
+  for (const authorityId of updatedAuthorities) {
+    try {
+      const authSnap = await db.collection('commitments')
+        .where('createdBy', '==', authorityId)
+        .where('status', 'in', ['honored', 'broken'])
+        .get();
+      
+      let honoredCount = 0;
+      let totalCount = authSnap.docs.length;
+      authSnap.docs.forEach(d => { if (d.data().status === 'honored') honoredCount++; });
+      
+      const trustScore = totalCount > 0 ? Math.round((honoredCount / totalCount) * 100) : 100;
+      
+      await db.collection('users').doc(authorityId).set({ trustScore }, { merge: true });
+    } catch (err) {
+      console.error(`Failed to update trustScore for ${authorityId}:`, err);
     }
   }
 

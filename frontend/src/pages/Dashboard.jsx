@@ -4,6 +4,7 @@ import { collection, query, orderBy, onSnapshot, limit, doc, getDoc, getDocs } f
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
+import { mockWards, mockReports, mockInsights } from '../lib/demoData';
 import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -214,21 +215,18 @@ export default function Dashboard() {
   }, [user, userDoc, authLoading, navigate, isOnboarded]);
 
   const load = useCallback(async () => {
-    if (!db) {
-      setLoading(false); return () => {};
-    }
     setLoading(true);
     let unsubReports = () => {};
-    try {
-      // Load wards to map wardId to city and store coordinates
-      const wardsSnap = await getDocs(collection(db, 'wards'));
+    
+    const processWards = (docs, isMock = false) => {
       const wardsMap = {};
       const citySet = new Set();
       const coordsMap = {};
-      wardsSnap.docs.forEach(d => {
-        const data = d.data();
+      docs.forEach(d => {
+        const data = isMock ? d : (d.data ? d.data() : d);
+        const id = isMock ? d.id : d.id;
         if (data.city) {
-          wardsMap[d.id] = data.city;
+          wardsMap[id] = data.city;
           citySet.add(data.city);
           if (data.lat && data.lng) {
             coordsMap[data.city] = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
@@ -238,19 +236,43 @@ export default function Dashboard() {
       setWards(wardsMap);
       setCities(Array.from(citySet).sort());
       setCityCoords(coordsMap);
+    };
 
-      // Fetch all reports (filtering done in render)
-      unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)), snap => {
-        setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setDataError(''); // Clear error on successful snapshot
-      }, err => {
-        console.error('Reports snapshot error:', err);
-        setDataError('Failed to load live reports. Please check your connection.');
-      });
+    if (!db) {
+      processWards(mockWards, true);
+      setReports(mockReports);
+      setDataError('Offline demo mode active.');
       setLoading(false);
+      return unsubReports;
+    }
+
+    try {
+      try {
+        const wardsSnap = await getDocs(collection(db, 'wards'));
+        processWards(wardsSnap.docs);
+      } catch (err) {
+        processWards(mockWards, true);
+      }
+
+      try {
+        unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)), snap => {
+          setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          setDataError(''); // Clear error on successful snapshot
+        }, err => {
+          console.error('Reports snapshot error:', err);
+          setReports(mockReports);
+          setDataError('Offline demo mode active.');
+        });
+      } catch (err) {
+        setReports(mockReports);
+        setDataError('Offline demo mode active.');
+      }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
-      setDataError('Failed to load dashboard data. Please try refreshing.');
+      processWards(mockWards, true);
+      setReports(mockReports);
+      setDataError('Offline demo mode active.');
+    } finally {
       setLoading(false);
     }
     return unsubReports;
@@ -264,20 +286,24 @@ export default function Dashboard() {
 
   // Handle insight fetching when selectedCity changes
   useEffect(() => {
-    if (!db) return;
     const fetchInsights = async () => {
       try {
+        if (!db) throw new Error("No DB");
         const docName = selectedCity ? selectedCity.toLowerCase() : 'demo_insight';
         const insightDoc = await getDoc(doc(db, 'dashboard_insights', docName));
         if (insightDoc.exists()) {
           setInsights(insightDoc.data());
         } else {
-          // Fallback if not found
           const fallbackDoc = await getDoc(doc(db, 'dashboard_insights', 'demo_insight'));
-          if (fallbackDoc.exists()) setInsights(fallbackDoc.data());
+          if (fallbackDoc.exists()) {
+            setInsights(fallbackDoc.data());
+          } else {
+            setInsights(mockInsights.demo_insight);
+          }
         }
       } catch (err) {
-        console.error('Failed to load insights:', err);
+        console.error('Failed to load insights, using fallback:', err);
+        setInsights(mockInsights.demo_insight);
       }
     };
     fetchInsights();
@@ -320,7 +346,7 @@ export default function Dashboard() {
         <ol className="flex items-center gap-2 font-label-md text-label-md">
           <li><Link to="/" className="text-navy hover:underline">Home</Link></li>
           <li><span className="text-muted">/</span></li>
-          <li aria-current="page" className="text-muted">Public Ledger</li>
+          <li aria-current="page" className="text-muted">Dashboard</li>
         </ol>
       </nav>
 
@@ -347,7 +373,7 @@ export default function Dashboard() {
       <header className="mb-stack-lg flex flex-col md:flex-row md:items-baseline justify-between gap-4 pb-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">The Public Trust Ledger</h1>
+            <h1 className="font-serif text-4xl text-navy font-bold tracking-tight">Civic Dashboard</h1>
             {userDoc?.streak > 0 && (
               <div className="flex items-center gap-1 bg-terracotta/10 text-terracotta px-2.5 py-0.5 rounded-full border border-terracotta/20 shadow-sm" title={`${userDoc.streak} day streak!`}>
                 <span className="material-symbols-outlined text-[18px]">local_fire_department</span>
@@ -355,7 +381,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          <p className="font-body-md text-muted mt-2 max-w-2xl">Official, permanent registry of civic commitments and citizen evidence. Track whether authorities are honoring their word.</p>
+          <p className="font-body-md text-muted mt-2 max-w-2xl">Overview of network analytics, your active reports, and community insights.</p>
         </div>
         <div className="flex flex-col md:flex-row gap-3 md:items-center shrink-0 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
           <div className="flex gap-2 flex-1 md:flex-none shrink-0">
@@ -584,111 +610,50 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* Ledger Table */}
-      <section className="glass-panel border border-white/40 rounded-3xl mb-stack-lg shadow-glass animate-fade-in-up overflow-hidden" style={{ animationDelay: '350ms' }}>
-        <div className="px-gutter py-6 border-b border-white/20 flex justify-between items-center bg-white/40">
-          <h2 className="font-serif text-2xl text-navy font-bold">Public Ledger Entries</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-body-md text-body-md">
-            <thead className="bg-paper font-label-md text-label-md text-muted border-b border-border">
-              <tr>
-                <th className="py-3 px-gutter font-bold uppercase tracking-widest text-[10px]">Registry ID</th>
-                <th className="py-3 px-gutter font-bold uppercase tracking-widest text-[10px]">Evidence / Category</th>
-                <th className="py-3 px-gutter font-bold uppercase tracking-widest text-[10px]">Location</th>
-                <th className="py-3 px-gutter font-bold uppercase tracking-widest text-[10px]">Date Recorded</th>
-                <th className="py-3 px-gutter font-bold uppercase tracking-widest text-[10px]">Commitment Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border font-serif">
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="py-8 text-center text-muted">
-                    <div className="flex items-center justify-center gap-2">
-                       <span className="material-symbols-outlined animate-spin">sync</span> Loading registry...
+      {/* My Active Contributions */}
+      {myReports.length > 0 && (
+        <section className="mb-stack-lg animate-fade-in-up" style={{ animationDelay: '320ms' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-navy">person</span>
+              <h2 className="font-serif text-2xl text-navy font-bold">My Active Evidence</h2>
+            </div>
+            <Link to="/my-reports" className="text-xs font-bold text-navy hover:underline flex items-center gap-1 uppercase tracking-widest">
+              View All <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myReports.slice(0, 3).map(r => (
+              <div key={r.id} className="glass-panel border-white/40 p-5 rounded-3xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-navy/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+                <div className="relative z-10 flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-navy/10 text-navy flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px]">{getCategoryIcon(r.category)}</span>
                     </div>
-                  </td>
-                </tr>
-              ) : filteredReports.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="py-8 text-center text-muted">No records found matching filters.</td>
-                </tr>
-              ) : (
-                <>
-                  {myReports.length > 0 && (
-                    <>
-                      <tr className="bg-paper">
-                        <td colSpan="5" className="py-2 px-gutter">
-                          <span className="font-label-md text-xs font-bold uppercase tracking-wider text-navy">My Evidence</span>
-                        </td>
-                      </tr>
-                      {myReports.map(r => (
-                        <tr key={r.id} className="hover:bg-paper transition-colors bg-surface border-l-4 border-navy">
-                          <td className="py-4 px-gutter pl-4 text-muted text-sm font-mono tracking-wider">{r.id.slice(0,8).toUpperCase()}</td>
-                          <td className="py-4 px-gutter text-ink font-bold capitalize">
-                            {r.category?.replace('_', ' ')}
-                            {r.severity === 'high' && <span className="ml-2 inline-flex items-center text-[10px] uppercase font-sans font-bold tracking-widest text-terracotta">High Priority</span>}
-                          </td>
-                          <td className="py-4 px-gutter text-muted text-sm">
-                            <Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline font-bold transition-colors">
-                              {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown Area'}
-                            </Link>
-                          </td>
-                          <td className="py-4 px-gutter text-muted text-sm">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown'}</td>
-                          <td className="py-4 px-gutter">
-                            {r.status === 'resolved' ? (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage"><span className="material-symbols-outlined text-[16px]">verified</span> Honored</span>
-                            ) : r.status === 'open' ? (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted"><span className="material-symbols-outlined text-[16px]">history</span> Pending</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-navy"><span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
+                    <div>
+                      <h4 className="font-label-md font-bold text-ink capitalize">{r.category?.replace('_', ' ')}</h4>
+                      <p className="text-[10px] text-muted font-mono tracking-wider">{r.id.slice(0,8).toUpperCase()}</p>
+                    </div>
+                  </div>
+                  {r.status === 'resolved' ? (
+                    <span className="bg-sage/10 text-sage px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">verified</span> Honored</span>
+                  ) : r.status === 'open' ? (
+                    <span className="bg-paper text-muted px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">history</span> Pending</span>
+                  ) : (
+                    <span className="bg-navy/10 text-navy px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">sync</span> Ack</span>
                   )}
-                  {otherReports.length > 0 && (
-                    <>
-                      {myReports.length > 0 && (
-                        <tr className="bg-paper">
-                          <td colSpan="5" className="py-2 px-gutter border-t border-border mt-4">
-                            <span className="font-label-md text-xs font-bold uppercase tracking-wider text-muted">Community Evidence</span>
-                          </td>
-                        </tr>
-                      )}
-                      {otherReports.map(r => (
-                        <tr key={r.id} className="hover:bg-paper transition-colors bg-surface">
-                          <td className="py-4 px-gutter text-muted text-sm font-mono tracking-wider">{r.id.slice(0,8).toUpperCase()}</td>
-                          <td className="py-4 px-gutter text-ink font-bold capitalize">
-                            {r.category?.replace('_', ' ')}
-                            {r.severity === 'high' && <span className="ml-2 inline-flex items-center text-[10px] uppercase font-sans font-bold tracking-widest text-terracotta">High Priority</span>}
-                          </td>
-                          <td className="py-4 px-gutter text-muted text-sm">
-                            <Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline font-bold transition-colors">
-                              {r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown Area'}
-                            </Link>
-                          </td>
-                          <td className="py-4 px-gutter text-muted text-sm">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown'}</td>
-                          <td className="py-4 px-gutter">
-                            {r.status === 'resolved' ? (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage"><span className="material-symbols-outlined text-[16px]">verified</span> Honored</span>
-                            ) : r.status === 'open' ? (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted"><span className="material-symbols-outlined text-[16px]">history</span> Pending</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-navy"><span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                </div>
+                <p className="font-body-sm text-sm text-muted line-clamp-2 mb-4 relative z-10">{r.summary || r.description}</p>
+                <div className="flex justify-between items-center pt-3 border-t border-border/50 relative z-10">
+                  <span className="text-[11px] text-muted font-bold uppercase tracking-wider"><Link to={`/registry/${r.wardId}`} className="hover:text-navy hover:underline">{r.wardId?.replace(/ward(\d+)/i, 'Ward $1') || 'Unknown'}</Link></span>
+                  <span className="text-[11px] text-muted font-bold uppercase tracking-wider">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd') : 'Recently'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </main>
   );

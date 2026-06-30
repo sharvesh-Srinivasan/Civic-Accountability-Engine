@@ -10,6 +10,8 @@ const ERROR_MESSAGES = {
   'auth/weak-password':         'Password must be at least 6 characters.',
   'auth/invalid-credential':    'Invalid email or password.',
   'auth/api-key-not-valid':     'Firebase is not configured — add your API keys to .env',
+  'auth/popup-closed-by-user':  'Sign-in cancelled. Please try again.',
+  'auth/cancelled-popup-request': 'Sign-in cancelled. Please try again.',
 };
 
 export default function Login() {
@@ -55,61 +57,72 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-paper flex flex-col md:flex-row font-body-md text-ink">
+    <div className="min-h-screen flex flex-col md:flex-row font-body-md text-ink bg-surface">
       
       {/* Left pane: Branding/Info */}
-      <div className="w-full md:w-1/2 bg-navy flex flex-col justify-between p-margin-mobile md:p-margin-desktop border-b md:border-b-0 md:border-r border-navy-light relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 110%, rgba(255,255,255,0.3) 0%, transparent 50%)' }}></div>
+      <div className="w-full md:w-5/12 bg-gradient-to-br from-navy via-[#1e2030] to-ink flex flex-col justify-between p-12 md:p-16 relative overflow-hidden shadow-[inset_-20px_0_40px_rgba(0,0,0,0.2)]">
+        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-navy-light/20 blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-sage/10 blur-[100px] pointer-events-none"></div>
+        
         <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center gap-2 mb-stack-lg">
-            <span className="material-symbols-outlined text-[32px] text-white">account_balance</span>
-            <span className="font-serif text-2xl font-bold text-white">CivicConnect</span>
+          <div className="flex items-center gap-3 mb-16">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-glass">
+              <img src="/shield.svg" alt="CivicWatch Logo" className="w-8 h-8 drop-shadow-md" />
+            </div>
+            <span className="font-serif text-2xl font-bold text-white tracking-wide">CivicWatch</span>
           </div>
           
-          <h1 className="font-serif text-4xl text-white mb-stack-md leading-tight">
+          <h1 className="font-serif text-5xl text-white mb-6 leading-[1.1] tracking-tight text-balance">
             The Public Trust<br />Ledger
           </h1>
-          <p className="font-body-lg text-body-lg text-white/70 max-w-md">
-            Hold local authorities accountable. Every civic commitment, publicly recorded.
+          <p className="font-body-lg text-lg text-white/70 max-w-sm leading-relaxed">
+            Hold local authorities accountable. Every civic commitment, publicly recorded and tracked.
           </p>
         </div>
         
         <div className="relative z-10 hidden md:block animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-          <div className="bg-white/10 p-gutter rounded-xl border border-white/20 max-w-sm backdrop-blur-sm">
-            <p className="font-label-md text-label-md text-white mb-2 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[16px]">verified</span> Official Portal
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 max-w-sm backdrop-blur-md shadow-glass">
+            <p className="font-label-md text-sm text-white mb-2 flex items-center gap-2 uppercase tracking-widest font-bold">
+              <span className="material-symbols-outlined text-[18px] text-sage">verified</span> Official Portal
             </p>
-            <p className="text-sm text-white/70">
-              This system is maintained by the Department of Citizen Services. Your data is secure and protected.
+            <p className="text-sm text-white/60 leading-relaxed">
+              This system is maintained by the Department of Citizen Services. Your data is secure and protected by enterprise-grade encryption.
             </p>
           </div>
         </div>
       </div>
 
       {/* Right pane: Auth Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-paper relative z-10">
-        <div className="w-full max-w-md bg-surface p-gutter rounded-xl shadow-sm border border-border animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+      <div className="w-full md:w-7/12 flex items-center justify-center p-8 md:p-24 bg-[#f8f9fa] relative z-10 overflow-hidden">
+        
+        <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-40 -right-40 w-96 h-96 bg-sage/5 rounded-full blur-[100px]"></div>
+            <div className="absolute bottom-10 left-10 w-72 h-72 bg-navy/5 rounded-full blur-[80px]"></div>
+        </div>
+
+        <div className="w-full max-w-[420px] bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/50 animate-fade-in-up relative z-20" style={{ animationDelay: '100ms' }}>
           
-          <div className="text-center mb-stack-lg">
-            <h2 className="font-headline-lg text-headline-lg text-ink">
+          <div className="text-center mb-10">
+            <h2 className="font-serif text-3xl font-bold text-navy mb-2 tracking-tight">
               {mode === 'login' ? 'Welcome Back' : 'Create Account'}
             </h2>
-            <p className="font-body-md text-body-md text-muted mt-1">
+            <p className="font-body-md text-muted">
               {mode === 'login' ? 'Sign in to access your civic dashboard' : 'Join your community network'}
             </p>
           </div>
 
           {/* Toggle */}
-          <div className="flex bg-paper rounded-lg p-1 mb-stack-md border border-border">
+          <div className="flex bg-surface rounded-xl p-1 mb-8 border border-border shadow-inner">
             <button
               onClick={() => { setMode('login'); setError(''); }}
-              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-all duration-150 ${mode === 'login' ? 'bg-navy text-white shadow-sm' : 'text-muted hover:text-ink'}`}
+              className={`flex-1 py-2.5 font-label-md text-sm font-bold rounded-lg transition-all duration-300 ${mode === 'login' ? 'bg-white text-navy shadow-sm' : 'text-muted hover:text-ink'}`}
             >
               Sign In
             </button>
             <button
               onClick={() => { setMode('signup'); setError(''); }}
-              className={`flex-1 py-2 font-label-md text-label-md rounded-md transition-all duration-150 ${mode === 'signup' ? 'bg-navy text-white shadow-sm' : 'text-muted hover:text-ink'}`}
+              className={`flex-1 py-2.5 font-label-md text-sm font-bold rounded-lg transition-all duration-300 ${mode === 'signup' ? 'bg-white text-navy shadow-sm' : 'text-muted hover:text-ink'}`}
             >
               Sign Up
             </button>
@@ -125,14 +138,14 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
-                <label className="block font-label-md text-label-md text-ink mb-1">Full Name</label>
+                <label className="block font-label-md text-xs font-bold uppercase tracking-wider text-muted mb-2">Full Name</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">person</span>
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-[20px]">person</span>
                   <input
                     type="text"
                     value={displayName}
                     onChange={e => setDisplayName(e.target.value)}
-                    className="w-full bg-surface border border-border rounded-lg pl-10 pr-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
+                    className="w-full bg-white border border-border rounded-xl pl-11 pr-4 py-3.5 focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all shadow-sm font-body-md"
                     placeholder="Jane Doe"
                     required
                   />
@@ -141,14 +154,14 @@ export default function Login() {
             )}
 
             <div>
-              <label className="block font-label-md text-label-md text-ink mb-1">Email Address</label>
+              <label className="block font-label-md text-xs font-bold uppercase tracking-wider text-muted mb-2">Email Address</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">mail</span>
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-[20px]">mail</span>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-surface border border-border rounded-lg pl-10 pr-4 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full bg-white border border-border rounded-xl pl-11 pr-4 py-3.5 focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all shadow-sm font-body-md"
                   placeholder="name@example.com"
                   required
                 />
@@ -156,14 +169,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block font-label-md text-label-md text-ink mb-1">Password</label>
+              <label className="block font-label-md text-xs font-bold uppercase tracking-wider text-muted mb-2">Password</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted">lock</span>
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted text-[20px]">lock</span>
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-surface border border-border rounded-lg pl-10 pr-10 py-3 focus:border-navy focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full bg-white border border-border rounded-xl pl-11 pr-11 py-3.5 focus:border-navy focus:ring-2 focus:ring-navy/20 focus:outline-none transition-all shadow-sm font-body-md"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -171,9 +184,9 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-navy transition-colors"
                 >
-                  <span className="material-symbols-outlined">{showPw ? 'visibility_off' : 'visibility'}</span>
+                  <span className="material-symbols-outlined text-[20px]">{showPw ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
             </div>
@@ -181,9 +194,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-navy text-white font-label-md text-label-md py-3 rounded-lg hover:bg-navy-light hover:scale-[1.01] hover:shadow-md transition-all duration-150 mt-2 flex items-center justify-center h-[48px] disabled:opacity-70 disabled:cursor-not-allowed disabled:scale-100"
+              className="w-full bg-navy text-white font-label-md text-sm font-bold tracking-wide py-3.5 rounded-xl hover:bg-navy-light hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 mt-6 flex items-center justify-center h-[52px] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {loading ? <span className="material-symbols-outlined animate-spin">sync</span> : (mode === 'login' ? 'Sign In' : 'Create Account')}
+              {loading ? <span className="material-symbols-outlined animate-spin text-[20px]">sync</span> : (mode === 'login' ? 'Sign In' : 'Create Account')}
             </button>
           </form>
 
@@ -196,7 +209,7 @@ export default function Login() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full mt-4 bg-white border border-border text-ink font-label-md text-label-md py-3 rounded-lg hover:bg-surface hover:scale-[1.01] hover:shadow-sm transition-all duration-150 flex items-center justify-center gap-3 h-[48px] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full mt-6 bg-white border border-border text-ink font-label-md text-sm font-bold tracking-wide py-3.5 rounded-xl hover:bg-surface hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 flex items-center justify-center gap-3 h-[52px] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
           >
             <svg width="20" height="20" viewBox="0 0 48 48" className="shrink-0">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
@@ -208,8 +221,8 @@ export default function Login() {
             Sign in with Google
           </button>
 
-          <div className="mt-stack-lg text-center pt-stack-md border-t border-border">
-            <Link to="/" className="font-label-md text-label-md text-navy hover:underline flex items-center justify-center gap-1">
+          <div className="mt-10 text-center pt-8 border-t border-border">
+            <Link to="/" className="font-label-md text-sm font-bold text-navy hover:text-navy-light hover:underline flex items-center justify-center gap-1 transition-colors">
               Continue to public dashboard <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </Link>
           </div>

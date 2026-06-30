@@ -10,6 +10,16 @@ import { StatusBadge, CategoryIcon } from '../components/ReportCard';
 import api from '../lib/api'; // For geolocation/ward logic if needed
 import { Flag, CheckCircle, Eye, Shield } from 'lucide-react';
 
+const getCategoryIcon = (cat) => {
+  switch(cat) {
+    case 'infrastructure': return 'construction';
+    case 'sanitation': return 'cleaning_services';
+    case 'utilities': return 'water_drop';
+    case 'traffic': return 'traffic';
+    default: return 'report';
+  }
+};
+
 function BadgeIcon({ name, description, Icon, unlocked, progress, total }) {
   const isLocked = !unlocked;
   return (
@@ -231,7 +241,16 @@ export default function Profile() {
           {/* PERSONAL DETAILS */}
           {activeTab === 'details' && (
             <div className="glass-panel rounded-3xl p-gutter shadow-glass animate-fade-in">
-              <h2 className="font-headline-sm text-headline-sm mb-6 text-ink">Personal Details</h2>
+              <div className="flex items-center gap-6 mb-8">
+                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-navy to-ink text-white flex items-center justify-center font-serif text-4xl shadow-glow-navy shrink-0 border-2 border-white/20">
+                  {(details.displayName || user?.email || 'U')[0].toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-headline-sm text-headline-sm text-ink">{details.displayName || 'Citizen'}</h2>
+                  <p className="text-muted text-sm">{user?.email}</p>
+                </div>
+              </div>
+              <h2 className="font-headline-sm text-lg font-bold mb-6 text-ink border-b border-border pb-2">Edit Details</h2>
               <form onSubmit={handleSaveDetails} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -342,24 +361,52 @@ export default function Profile() {
                 </div>
               )}
 
-              <div className="glass-panel rounded-3xl p-gutter shadow-glass mt-6">
-                 <h3 className="font-headline-sm text-headline-sm text-ink mb-4">Reporting History</h3>
-                 {loadingReports ? (
+              {/* Activity Timeline */}
+              <div className="glass-panel rounded-3xl p-gutter shadow-glass mt-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-navy/5 rounded-bl-full pointer-events-none"></div>
+                <h3 className="font-headline-sm text-headline-sm text-ink mb-8 flex items-center gap-2 relative z-10">
+                  <span className="material-symbols-outlined text-navy">timeline</span>
+                  Civic Activity Timeline
+                </h3>
+                
+                {loadingReports ? (
                    <p className="text-muted py-4">Loading history...</p>
                  ) : myReports.length === 0 ? (
                    <p className="text-muted py-4">You haven't filed any reports yet. <Link to="/report/new" className="text-navy hover:underline">File your first report.</Link></p>
                  ) : (
-                   <div className="divide-y divide-outline-variant">
-                     {myReports.map(r => (
-                       <div key={r.id} className="py-4 flex justify-between items-center">
-                         <div>
-                           <p className="font-label-md text-ink capitalize mb-1">{r.category?.replace('_',' ')}</p>
-                           <p className="font-caption text-xs text-muted">{r.createdAt?.toDate?.() ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Recently'}</p>
-                         </div>
-                         <StatusBadge status={r.status} />
-                       </div>
-                     ))}
-                   </div>
+                  <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent z-10">
+                    
+                    {userDoc?.badges?.length > 0 && (
+                       <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-amber text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                          <span className="material-symbols-outlined text-[16px]">military_tech</span>
+                        </div>
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl glass-panel border-amber/20 shadow-sm hover:-translate-y-1 transition-transform">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-ink text-sm">Earned a Badge</span>
+                            <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Recently</span>
+                          </div>
+                          <p className="text-xs text-muted">You unlocked the <strong className="text-amber">{userDoc.badges[0]}</strong> badge!</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {myReports.slice(0,5).map((r, i) => (
+                      <div key={r.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-paper bg-navy text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                          <span className="material-symbols-outlined text-[16px]">{getCategoryIcon(r.category)}</span>
+                        </div>
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl glass-panel border-white/40 shadow-sm hover:-translate-y-1 transition-transform">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-ink text-sm capitalize">{r.category?.replace('_', ' ')}</span>
+                            <span className="text-[10px] text-muted font-bold uppercase tracking-wider">{r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd') : 'Recently'}</span>
+                          </div>
+                          <p className="text-xs text-muted line-clamp-2 mb-2">{r.summary || r.description}</p>
+                          <StatusBadge status={r.status} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                  )}
               </div>
             </div>

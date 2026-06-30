@@ -3,6 +3,9 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || 'dummy-key');
 
 /* ── Category config ─────────────────────────────────────── */
 const CATEGORY_CFG = {
@@ -222,12 +225,43 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
     setRtiLoading(true);
     setShowRTI(true);
     try {
-      const res = await api.get(`/api/reports/${report.id}/rti`);
-      setRtiText(res.data.rtiText);
+      if (!import.meta.env.VITE_GEMINI_API_KEY) throw new Error("No API Key");
+      
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      const prompt = `You are a legal assistant drafting a formal Right to Information (RTI) request for an Indian citizen. 
+      The citizen is escalating an unresolved civic issue.
+      Issue Category: ${report.category}
+      Description: ${report.description || report.summary}
+      Date Reported: ${date.toLocaleDateString()}
+      ${commitment ? `The authority (${commitment.authorityName}) made a promise to resolve it by ${new Date(commitment.etaDate?.toDate?.() || commitment.etaDate).toLocaleDateString()}, but the commitment is currently ${commitment.status}.` : 'No official commitment has been made yet.'}
+      
+      Draft a highly professional, assertive, but polite 3-paragraph RTI request asking for:
+      1. The reasons for the delay.
+      2. The allocated budget and contractor details for this specific fix.
+      3. A definitive timeline for resolution.
+      
+      Do not include placeholder brackets like [Your Name], just write the body of the letter. Keep it under 150 words.`;
+      
+      const result = await model.generateContent(prompt);
+      setRtiText(result.response.text());
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate notice');
-      setRtiText('Failed to generate RTI. Please try again later.');
+      console.error("RTI AI Error:", err);
+      toast.error('API failed. Using offline legal template.');
+      
+      setRtiText(`Subject: RTI Application under Section 6(1) of the Right to Information Act, 2005
+
+Dear Public Information Officer,
+
+I am writing to formally request information regarding the unresolved civic issue (${report.category}) reported on ${date.toLocaleDateString()}. The issue pertains to: ${report.summary || report.description}.
+
+${commitment ? `The authority (${commitment.authorityName}) committed to resolving this by ${new Date(commitment.etaDate?.toDate?.() || commitment.etaDate).toLocaleDateString()}, but action is still pending.` : ''}
+
+Please provide the following details:
+1. The current status of the file/complaint.
+2. The name of the contractor/officer responsible for the delay.
+3. The exact timeline by which this public hazard will be permanently resolved.
+
+Thank you.`);
     } finally {
       setRtiLoading(false);
     }
@@ -289,7 +323,7 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
           )}
 
           {/* Feature: Auto-Draft Legal Notice (Actionable AI) */}
-          {!compact && effectiveStatus !== 'resolved' && daysOpen >= 7 && (
+          {!compact && effectiveStatus !== 'resolved' && (
             <div className="mt-3 w-full" onClick={e => e.stopPropagation()}>
               {!showRTI ? (
                 <button onClick={handleGenerateRTI} className="bg-navy text-white text-[11px] font-label-md font-bold uppercase tracking-widest px-4 py-2 rounded-2xl shadow-glass flex items-center gap-1.5 hover:-translate-y-1 hover:shadow-glow-navy transition-all duration-300 relative overflow-hidden group">
@@ -319,7 +353,7 @@ export default function ReportCard({ report, commitment, onClick, compact = fals
           )}
 
           {/* Feature: Civic Crowdfunding */}
-          {!compact && commitment && commitment.status === 'broken' && (
+          {!compact && commitment && (
             <div className="mt-4 glass-panel border border-terracotta/20 p-4 rounded-2xl w-full text-left relative overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="absolute top-0 right-0 w-24 h-24 bg-terracotta/5 rounded-bl-full pointer-events-none"></div>
               <div className="flex items-center gap-1.5 mb-2 relative z-10">

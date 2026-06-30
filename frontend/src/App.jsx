@@ -1,10 +1,11 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import PublicRegistry from './pages/PublicRegistry';
 import NewReport from './pages/NewReport';
 import MyReports from './pages/MyReports';
 import AuthorityView from './pages/AuthorityView';
@@ -41,15 +42,16 @@ function OnboardingRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin" /></div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  // DEMO MODE: Allow any logged-in user to access the Admin Panel
   return children;
 }
 
 export default function App() {
   const { user } = useAuth();
+  const location = useLocation();
 
   return (
     <div className="min-h-screen mesh-bg relative overflow-x-hidden">
@@ -57,6 +59,7 @@ export default function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/registry" element={<PublicRegistry />} />
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
           <Route path="/report/new" element={<PrivateRoute><NewReport /></PrivateRoute>} />
@@ -68,7 +71,7 @@ export default function App() {
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <CivicBot />
+        {location.pathname !== '/login' && <CivicBot />}
       </ErrorBoundary>
     </div>
   );

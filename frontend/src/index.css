@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -56,6 +53,22 @@
   height: 100%;
   width: 100%;
   z-index: 1;
+}
+
+/* FOUC layout shift prevention for Material Symbols */
+.material-symbols-outlined {
+  /* Prevent the raw fallback text (e.g. "add_a_photo") from stretching containers */
+  max-width: 1em;
+  max-height: 1em;
+  overflow: hidden;
+  /* Vertically align correctly in flex layouts */
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  /* Make the text invisible while fallback font is active. When the icon loads, the ligature renders as an icon shape which inherits the color */
+  color: transparent; 
+  text-shadow: 0 0 0 currentColor; /* The icon itself will take the text-shadow color */
 }
 
 /* Animation keyframes */

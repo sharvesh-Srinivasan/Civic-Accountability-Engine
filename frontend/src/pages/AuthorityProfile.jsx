@@ -3,11 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { format } from 'date-fns';
+import { mockWards, mockReports, mockCommitments } from '../lib/demoData';
 
 export default function AuthorityProfile() {
   const { wardId } = useParams();
   const [ward, setWard] = useState(null);
   const [reports, setReports] = useState([]);
+  const [commitments, setCommitments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -21,27 +23,42 @@ export default function AuthorityProfile() {
     async function loadData() {
       try {
         setLoading(true);
-        // Load Ward Info
-        const wardDoc = await getDoc(doc(db, 'wards', wardId));
-        if (wardDoc.exists()) {
-          setWard(wardDoc.data());
-        } else {
-          setWard({ name: wardId.replace(/ward(\d+)/i, 'Ward $1'), city: 'Unknown' });
-        }
-
-        // Load Reports for Ward
-        const q = query(collection(db, 'reports'), where('wardId', '==', wardId));
-        const snap = await getDocs(q);
-        const fetchedReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        let fetchedWard = null;
+        let fetchedReports = [];
+        let fetchedCommitments = [];
         
+        try {
+          if (!db) throw new Error("No DB");
+          const wardDoc = await getDoc(doc(db, 'wards', wardId));
+          if (wardDoc.exists()) {
+            fetchedWard = wardDoc.data();
+          } else {
+            fetchedWard = { name: wardId.replace(/ward(\d+)/i, 'Ward $1'), city: 'Unknown' };
+          }
+
+          const rSnap = await getDocs(query(collection(db, 'reports'), where('wardId', '==', wardId)));
+          fetchedReports = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          
+          const cSnap = await getDocs(query(collection(db, 'commitments')));
+          fetchedCommitments = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+          console.warn('Using offline mock data', err);
+          fetchedWard = mockWards.find(w => w.id === wardId) || { name: wardId.replace(/ward(\d+)/i, 'Ward $1'), city: 'Unknown' };
+          fetchedReports = mockReports.filter(r => r.wardId === wardId);
+          fetchedCommitments = mockCommitments;
+        }
+        
+        setWard(fetchedWard);
+
         // Sort by date descending
         fetchedReports.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime());
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime());
           return tB - tA;
         });
 
         setReports(fetchedReports);
+        setCommitments(fetchedCommitments);
 
         // Calculate Stats
         const total = fetchedReports.length;
@@ -143,8 +160,11 @@ export default function AuthorityProfile() {
                   <td colSpan="4" className="py-8 text-center text-muted">No records available for this authority.</td>
                 </tr>
               ) : reports.map(r => {
-                const dateStr = r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : 'Unknown';
-                const isResolved = r.status === 'resolved';
+                const dateStr = r.createdAt?.toDate ? format(r.createdAt.toDate(), 'MMM dd, yyyy') : r.createdAt ? format(new Date(r.createdAt), 'MMM dd, yyyy') : 'Unknown';
+                const commitment = commitments.find(c => c.reportId === r.id);
+                const status = commitment ? commitment.status : (r.status === 'resolved' ? 'honored' : r.status);
+                const isBroken = status === 'broken';
+                const isHonored = status === 'honored';
                 
                 return (
                   <tr key={r.id} className="hover:bg-surface transition-colors bg-[#fdfdfd]">
@@ -156,11 +176,15 @@ export default function AuthorityProfile() {
                     </td>
                     <td className="py-4 px-gutter text-muted text-sm">{dateStr}</td>
                     <td className="py-4 px-gutter">
-                      {isResolved ? (
+                      {isBroken ? (
+                        <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-terracotta">
+                          <span className="material-symbols-outlined text-[16px]">cancel</span> Broken
+                        </span>
+                      ) : isHonored ? (
                         <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-sage">
                           <span className="material-symbols-outlined text-[16px]">verified</span> Honored
                         </span>
-                      ) : r.status === 'open' ? (
+                      ) : status === 'pending' || status === 'open' ? (
                         <span className="inline-flex items-center gap-1 font-sans text-xs font-bold uppercase tracking-wider text-muted">
                           <span className="material-symbols-outlined text-[16px]">history</span> Pending
                         </span>
@@ -169,6 +193,7 @@ export default function AuthorityProfile() {
                           <span className="material-symbols-outlined text-[16px]">sync</span> Acknowledged
                         </span>
                       )}
+                      {commitment && <p className="text-[10px] text-muted mt-1 max-w-[200px] truncate">{commitment.promisedAction}</p>}
                     </td>
                   </tr>
                 )

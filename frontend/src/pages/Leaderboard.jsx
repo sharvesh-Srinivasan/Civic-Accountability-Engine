@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, orderBy, limit, onSnapshot, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, getDocs, doc, updateDoc, where } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Shield, TrendingUp } from 'lucide-react';
+import { mockWards, mockUsers } from '../lib/demoData';
 
 export default function Leaderboard() {
   const { user, userDoc } = useAuth();
@@ -20,39 +21,39 @@ export default function Leaderboard() {
   // 1. Fetch Wards once
   useEffect(() => {
     const fetchWards = async () => {
-      if (!db) return;
+      let docs = [];
       try {
+        if (!db) throw new Error("No DB");
         const snap = await getDocs(collection(db, 'wards'));
-        const wardsMap = {};
-        const citySet = new Set();
-        snap.docs.forEach(d => {
-          const data = d.data();
-          if (data.city) {
-            wardsMap[d.id] = data; // store full ward data
-            citySet.add(data.city);
-          }
-        });
-        setWards(wardsMap);
-        setCities(Array.from(citySet).sort());
-        if (userDoc?.city) setSelectedCity(userDoc.city);
+        docs = snap.docs.map(d => ({ id: d.id, data: d.data() }));
       } catch (err) {
-        console.error("Failed to fetch wards:", err);
+        console.warn("Failed to fetch wards:", err);
+        docs = mockWards.map(w => ({ id: w.id, data: w }));
       }
+      const wardsMap = {};
+      const citySet = new Set();
+      docs.forEach(d => {
+        const data = d.data;
+        if (data.city) {
+          wardsMap[d.id] = data; // store full ward data
+          citySet.add(data.city);
+        }
+      });
+      setWards(wardsMap);
+      setCities(Array.from(citySet).sort());
+      if (userDoc?.city) setSelectedCity(userDoc.city);
     };
     fetchWards();
   }, [userDoc?.city]);
 
   // 2. Real-time Firebase Listener (The LIVE aspect)
   useEffect(() => {
-    if (!db || Object.keys(wards).length === 0) return;
+    if (Object.keys(wards).length === 0) return;
     
     setLoading(true);
-    const q = query(collection(db, 'users'), orderBy('civicScore', 'desc'), limit(100));
-    
-    const unsubscribe = onSnapshot(q, (snap) => {
-      let users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Track previous scores to trigger flash animations
+    let unsubscribe = () => {};
+
+    const handleUsersUpdate = (users) => {
       setPrevScores(prev => {
         const newPrev = { ...prev };
         users.forEach(u => {
@@ -64,28 +65,51 @@ export default function Leaderboard() {
         return newPrev;
       });
 
-      // Clear the flash animation after 2s
       setTimeout(() => {
         setLeaders(curr => curr.map(l => ({ ...l, justScored: false })));
       }, 2000);
       
       setLeaders(users);
       setLoading(false);
-    });
+    };
+    
+    try {
+      if (!db) throw new Error("No DB");
+      const q = query(collection(db, 'users'), orderBy('civicScore', 'desc'), limit(100));
+      unsubscribe = onSnapshot(q, (snap) => {
+        handleUsersUpdate(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }, err => {
+        console.warn('Leaderboard snapshot error:', err);
+        handleUsersUpdate(mockUsers.filter(u => !u.role || u.role !== 'authority'));
+      });
+    } catch (err) {
+      console.warn('Leaderboard offline mode:', err);
+      handleUsersUpdate(mockUsers.filter(u => !u.role || u.role !== 'authority'));
+    }
 
     return () => unsubscribe();
   }, [wards]);
 
   // Fetch Politicians (Authorities) for Trust Index
   useEffect(() => {
-    if (!db) return;
-    const q = query(collection(db, 'users'), where('role', '==', 'authority'));
-    const unsubscribe = onSnapshot(q, (snap) => {
-       let auths = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-       // sort by trustScore descending
+    let unsubscribe = () => {};
+    try {
+      if (!db) throw new Error("No DB");
+      const q = query(collection(db, 'users'), where('role', '==', 'authority'));
+      unsubscribe = onSnapshot(q, (snap) => {
+         let auths = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+         auths.sort((a,b) => (b.trustScore !== undefined ? b.trustScore : 100) - (a.trustScore !== undefined ? a.trustScore : 100));
+         setPoliticians(auths);
+      }, err => {
+         let auths = mockUsers.filter(u => u.role === 'authority');
+         auths.sort((a,b) => (b.trustScore !== undefined ? b.trustScore : 100) - (a.trustScore !== undefined ? a.trustScore : 100));
+         setPoliticians(auths);
+      });
+    } catch (err) {
+       let auths = mockUsers.filter(u => u.role === 'authority');
        auths.sort((a,b) => (b.trustScore !== undefined ? b.trustScore : 100) - (a.trustScore !== undefined ? a.trustScore : 100));
        setPoliticians(auths);
-    });
+    }
     return () => unsubscribe();
   }, []);
 
@@ -101,11 +125,25 @@ export default function Leaderboard() {
       if (targetUser && targetUser.id) {
          try {
            const currentScore = targetUser.civicScore || 0;
+           if (!db) throw new Error("No DB");
            await updateDoc(doc(db, 'users', targetUser.id), {
              civicScore: currentScore + Math.floor(Math.random() * 5) + 1
            });
          } catch (err) {
-           // Ignore errors for the simulator
+           // Simulate locally if offline
+           const add = Math.floor(Math.random() * 5) + 1;
+           setLeaders(curr => {
+             const newLeaders = [...curr];
+             const idx = newLeaders.findIndex(l => l.id === targetUser.id);
+             if (idx !== -1) {
+                newLeaders[idx] = { ...newLeaders[idx], civicScore: (currentScore + add), justScored: true };
+             }
+             return newLeaders.sort((a,b) => (b.civicScore || 0) - (a.civicScore || 0));
+           });
+           
+           setTimeout(() => {
+             setLeaders(curr => curr.map(l => ({ ...l, justScored: false })));
+           }, 2000);
          }
       }
     }, 4000);

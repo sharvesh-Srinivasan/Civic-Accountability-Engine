@@ -20,9 +20,10 @@ export default function Navbar() {
     <>
       {/* Mobile TopNav (Visible only on md:hidden) */}
       <header className="md:hidden glass-panel text-navy w-full h-16 flex justify-between items-center px-margin-mobile fixed top-0 z-50 rounded-b-2xl shadow-sm">
-        <div className="font-serif text-2xl font-bold text-navy">
-          CivicConnect
-        </div>
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/shield.svg" alt="CivicWatch Logo" className="w-8 h-8" />
+          <span className="font-serif text-2xl font-bold text-navy tracking-tight">CivicWatch</span>
+        </Link>
         <div className="flex gap-4">
           <span className="material-symbols-outlined cursor-pointer active:opacity-80 transition-all hover:scale-110 text-muted hover:text-navy">notifications</span>
         </div>
@@ -31,7 +32,11 @@ export default function Navbar() {
       {/* Mobile BottomNav (Visible only on md:hidden) */}
       <nav className="md:hidden fixed bottom-4 left-4 right-4 glass-panel rounded-full flex justify-around items-center h-16 z-50 shadow-glass">
         <Link to="/" className={`flex flex-col items-center gap-1 transition-all ${isActive('/') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>local_library</span>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>dashboard</span>
+          <span className="text-[10px]">Home</span>
+        </Link>
+        <Link to="/registry" className={`flex flex-col items-center gap-1 transition-all ${isActive('/registry') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
+          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/registry') ? "'FILL' 1" : "" }}>table_chart</span>
           <span className="text-[10px]">Ledger</span>
         </Link>
         {user ? (
@@ -50,6 +55,10 @@ export default function Navbar() {
                 <span className="text-[10px]">Admin</span>
               </Link>
             )}
+            <Link to="/admin" className="flex flex-col items-center gap-1 text-terracotta hover:text-navy transition-all">
+              <span className="material-symbols-outlined text-[24px]">admin_panel_settings</span>
+              <span className="text-[10px]">Demo Admin</span>
+            </Link>
           </>
         ) : (
           <Link to="/login" className="flex flex-col items-center gap-1 text-muted hover:text-navy transition-all">
@@ -62,9 +71,10 @@ export default function Navbar() {
       {/* SideNavBar (Hidden on Mobile) - Floating Glass Panel */}
       <nav className="hidden md:flex glass-panel text-ink h-[calc(100vh-32px)] w-64 fixed left-4 top-4 rounded-3xl flex-col py-stack-lg z-50 transition-all duration-500 hover:shadow-[0_8px_40px_rgba(31,38,135,0.12)]">
         <div className="px-gutter mb-stack-lg">
-          <div className="font-serif text-3xl font-bold text-navy mb-2 tracking-tight">
-            CivicConnect
-          </div>
+          <Link to="/" className="flex items-center gap-2 mb-2 group">
+            <img src="/shield.svg" alt="CivicWatch Logo" className="w-9 h-9 group-hover:scale-105 transition-transform" />
+            <span className="font-serif text-3xl font-bold text-navy tracking-tight">CivicWatch</span>
+          </Link>
           {loading ? (
             <div className="flex items-center gap-3 mt-4">
               <div className="w-10 h-10 rounded-full bg-paper animate-pulse" />
@@ -100,7 +110,15 @@ export default function Navbar() {
             to="/"
             className={`${isActive('/') ? 'bg-navy text-white shadow-sm' : 'text-muted hover:bg-navy-surface hover:text-navy'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-colors duration-150 ease-out`}
           >
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>local_library</span>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/') ? "'FILL' 1" : "" }}>dashboard</span>
+            Dashboard
+          </Link>
+
+          <Link
+            to="/registry"
+            className={`${isActive('/registry') ? 'bg-navy text-white shadow-sm' : 'text-muted hover:bg-navy-surface hover:text-navy'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-colors duration-150 ease-out`}
+          >
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/registry') ? "'FILL' 1" : "" }}>table_chart</span>
             Public Ledger
           </Link>
 
