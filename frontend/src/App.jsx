@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import PublicRegistry from './pages/PublicRegistry';
 import NewReport from './pages/NewReport';
 import MyReports from './pages/MyReports';
+import Onboarding from './pages/Onboarding';
 import Profile from './pages/Profile';
 import Leaderboard from './pages/Leaderboard';
 import CivicBot from './components/CivicBot';
