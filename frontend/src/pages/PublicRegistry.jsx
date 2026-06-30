@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { mockWards, mockReports } from '../lib/demoData';
+import { withTimeout } from '../lib/utils';
 
 export default function PublicRegistry() {
   const { user, userDoc, loading: authLoading, isOnboarded } = useAuth();
@@ -66,31 +67,47 @@ export default function PublicRegistry() {
 
     try {
       try {
-        const wardsSnap = await getDocs(collection(db, 'wards'));
+        const wardsSnap = await withTimeout(getDocs(collection(db, 'wards')), 5000);
         processWards(wardsSnap.docs);
       } catch (err) {
         processWards(mockWards, true);
       }
 
       try {
+        let isResolved = false;
+        const timeoutId = setTimeout(() => {
+          if (!isResolved) {
+             console.warn("Reports snapshot timed out, forcing fallback");
+             setReports(mockReports);
+             setDataError('Offline demo mode active (timeout).');
+             setLoading(false);
+          }
+        }, 5000);
+
         unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(500)), snap => {
+          isResolved = true;
+          clearTimeout(timeoutId);
           setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
           setDataError('');
+          setLoading(false);
         }, err => {
+          isResolved = true;
+          clearTimeout(timeoutId);
           console.error('Reports snapshot error:', err);
           setReports(mockReports);
           setDataError('Offline demo mode active.');
+          setLoading(false);
         });
       } catch (err) {
         setReports(mockReports);
         setDataError('Offline demo mode active.');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Failed to load registry data:', err);
       processWards(mockWards, true);
       setReports(mockReports);
       setDataError('Offline demo mode active.');
-    } finally {
       setLoading(false);
     }
     return unsubReports;

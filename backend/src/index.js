@@ -4,7 +4,6 @@ import cors from 'cors';
 import reportsRouter from './routes/reports.js';
 import commitmentsRouter from './routes/commitments.js';
 import wardsRouter from './routes/wards.js';
-import adminRouter from './routes/admin.js';
 import chatRoutes from './routes/chat.js';
 import { checkAndUpdateCommitments } from './services/commitmentChecker.js';
 
@@ -44,7 +43,6 @@ app.get('/health', (req, res) => res.json({ status: 'ok', env: process.env.NODE_
 app.use('/api/reports', reportsRouter);
 app.use('/api/commitments', commitmentsRouter);
 app.use('/api/wards', wardsRouter);
-app.use('/api/admin', adminRouter);
 app.use('/api/chat', chatRoutes);
 
 // Run commitment check on startup (daily would be via cron)

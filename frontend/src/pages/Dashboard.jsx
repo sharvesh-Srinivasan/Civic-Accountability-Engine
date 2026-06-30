@@ -5,7 +5,8 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { mockWards, mockReports, mockInsights } from '../lib/demoData';
-import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useMap, MapControl, ControlPosition } from '@vis.gl/react-google-maps';
+import { withTimeout } from '../lib/utils';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -33,12 +34,7 @@ function MapBoundsFitter({ reports, userLocation }) {
   useEffect(() => {
     if (!map) return;
     
-    // If the user's location is known, do not fit bounds to all reports
-    // as this could zoom out the map to the entire country. The Map component
-    // is already centered on the user's location via the center prop.
-    if (userLocation) return;
-    
-    // Create bounds based on reports only if no user location
+    // Create bounds based on reports
     const bounds = new window.google.maps.LatLngBounds();
     let hasPoints = false;
     
@@ -48,6 +44,11 @@ function MapBoundsFitter({ reports, userLocation }) {
         hasPoints = true;
       }
     });
+
+    if (userLocation) {
+      bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
+      hasPoints = true;
+    }
 
     if (hasPoints) {
       map.fitBounds(bounds, { padding: 50 }); // Padding of 50px
@@ -64,6 +65,13 @@ function CommunityMap({ reports, userDoc, selectedCity, cityCoords }) {
   const [center, setCenter] = useState({ lat: 11.1271, lng: 78.6569 }); // Default TN
   const [userLocation, setUserLocation] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreen = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFullscreen);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreen);
+  }, []);
 
   useEffect(() => {
     if (selectedCity && cityCoords && cityCoords[selectedCity]) {
@@ -136,6 +144,35 @@ function CommunityMap({ reports, userDoc, selectedCity, cityCoords }) {
             </AdvancedMarker>
           );
         })}
+
+        {/* Fullscreen Ledger Panel */}
+        {isFullscreen && (
+          <MapControl position={ControlPosition.RIGHT_TOP}>
+            <div className="bg-white/90 backdrop-blur-xl w-80 max-h-[90vh] mr-4 mt-4 rounded-3xl shadow-[0_8px_40px_rgba(31,38,135,0.2)] p-4 flex flex-col pointer-events-auto border border-white/50 z-50 animate-fade-in-up">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-navy/10">
+                <span className="material-symbols-outlined text-navy text-[24px]">list_alt</span>
+                <h3 className="font-serif text-xl text-navy font-bold">Evidence Ledger</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                {reports.slice(0, 50).map(r => (
+                  <div key={r.id} onClick={() => setSelectedReport(r)} className="bg-white/60 p-3 rounded-2xl border border-white/60 shadow-sm flex gap-3 cursor-pointer hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-inner ${getMarkerConfig(r.status).color}`}>
+                      <span className="material-symbols-outlined text-[18px]">{getCategoryIcon(r.category)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-label-md text-sm font-bold text-navy capitalize truncate">{r.category?.replace('_', ' ')}</h4>
+                      <p className="text-xs text-muted line-clamp-2 mt-0.5 leading-relaxed">{r.summary || r.description}</p>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-[9px] uppercase font-bold text-muted tracking-widest">{r.status}</span>
+                        <span className="text-[9px] uppercase font-bold text-navy/40 tracking-widest">{r.wardId?.replace(/ward(\d+)/i, 'W$1') || ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </MapControl>
+        )}
 
         {/* Report Details Popup */}
         {selectedReport && (
@@ -248,31 +285,47 @@ export default function Dashboard() {
 
     try {
       try {
-        const wardsSnap = await getDocs(collection(db, 'wards'));
+        const wardsSnap = await withTimeout(getDocs(collection(db, 'wards')), 5000);
         processWards(wardsSnap.docs);
       } catch (err) {
         processWards(mockWards, true);
       }
 
       try {
+        let isResolved = false;
+        const timeoutId = setTimeout(() => {
+          if (!isResolved) {
+             console.warn("Reports snapshot timed out, forcing fallback");
+             setReports(mockReports);
+             setDataError('Offline demo mode active (timeout).');
+             setLoading(false);
+          }
+        }, 5000);
+
         unsubReports = onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(100)), snap => {
+          isResolved = true;
+          clearTimeout(timeoutId);
           setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
           setDataError(''); // Clear error on successful snapshot
+          setLoading(false);
         }, err => {
+          isResolved = true;
+          clearTimeout(timeoutId);
           console.error('Reports snapshot error:', err);
           setReports(mockReports);
           setDataError('Offline demo mode active.');
+          setLoading(false);
         });
       } catch (err) {
         setReports(mockReports);
         setDataError('Offline demo mode active.');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       processWards(mockWards, true);
       setReports(mockReports);
       setDataError('Offline demo mode active.');
-    } finally {
       setLoading(false);
     }
     return unsubReports;
@@ -290,11 +343,11 @@ export default function Dashboard() {
       try {
         if (!db) throw new Error("No DB");
         const docName = selectedCity ? selectedCity.toLowerCase() : 'demo_insight';
-        const insightDoc = await getDoc(doc(db, 'dashboard_insights', docName));
+        const insightDoc = await withTimeout(getDoc(doc(db, 'dashboard_insights', docName)), 5000);
         if (insightDoc.exists()) {
           setInsights(insightDoc.data());
         } else {
-          const fallbackDoc = await getDoc(doc(db, 'dashboard_insights', 'demo_insight'));
+          const fallbackDoc = await withTimeout(getDoc(doc(db, 'dashboard_insights', 'demo_insight')), 5000);
           if (fallbackDoc.exists()) {
             setInsights(fallbackDoc.data());
           } else {
@@ -324,15 +377,15 @@ export default function Dashboard() {
   const myReports = filteredReports.filter(r => r.userId === user?.uid);
   const otherReports = filteredReports.filter(r => r.userId !== user?.uid);
 
-  if (authLoading || !user) {
+  if (authLoading || !user || loading) {
     return (
-      <div className="flex-1 flex flex-col p-margin-desktop gap-4 w-full max-w-container-max mx-auto bg-paper min-h-screen">
-        <div className="h-8 w-64 bg-surface rounded animate-shimmer bg-gradient-to-r from-surface via-border to-surface bg-[length:200%_100%] shadow-sm" />
-        <div className="h-[400px] w-full bg-surface rounded-xl animate-shimmer bg-gradient-to-r from-surface via-border to-surface bg-[length:200%_100%] border border-border shadow-sm" />
+      <div className="flex-1 flex flex-col p-margin-desktop gap-4 w-full max-w-container-max mx-auto bg-paper min-h-screen pt-24">
+        <div className="h-8 w-64 bg-surface rounded animate-shimmer bg-[length:200%_100%] shadow-sm mb-8" />
+        <div className="h-[400px] w-full bg-surface rounded-3xl animate-shimmer bg-[length:200%_100%] shadow-glass mb-8" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-stack-md">
-          <div className="h-32 bg-surface rounded-xl border border-border animate-shimmer bg-gradient-to-r from-surface via-border to-surface bg-[length:200%_100%] shadow-sm" />
-          <div className="h-32 bg-surface rounded-xl border border-border animate-shimmer bg-gradient-to-r from-surface via-border to-surface bg-[length:200%_100%] shadow-sm" />
-          <div className="h-32 bg-surface rounded-xl border border-border animate-shimmer bg-gradient-to-r from-surface via-border to-surface bg-[length:200%_100%] shadow-sm" />
+          <div className="h-40 bg-surface rounded-3xl border border-border animate-shimmer bg-[length:200%_100%] shadow-sm" />
+          <div className="h-40 bg-surface rounded-3xl border border-border animate-shimmer bg-[length:200%_100%] shadow-sm" />
+          <div className="h-40 bg-surface rounded-3xl border border-border animate-shimmer bg-[length:200%_100%] shadow-sm" />
         </div>
       </div>
     );

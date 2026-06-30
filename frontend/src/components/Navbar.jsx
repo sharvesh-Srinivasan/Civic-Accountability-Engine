@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
-  const { user, userDoc, isAuthority, isAdmin, logout, loading } = useAuth();
+  const { user, userDoc, logout, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -49,16 +49,6 @@ export default function Navbar() {
               <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/profile') ? "'FILL' 1" : "" }}>person</span>
               <span className="text-[10px]">Profile</span>
             </Link>
-            {isAdmin && (
-              <Link to="/admin" className={`flex flex-col items-center gap-1 transition-all ${isActive('/admin') ? 'text-navy font-bold scale-110' : 'text-muted hover:text-navy'}`}>
-                <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isActive('/admin') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
-                <span className="text-[10px]">Admin</span>
-              </Link>
-            )}
-            <Link to="/admin" className="flex flex-col items-center gap-1 text-terracotta hover:text-navy transition-all">
-              <span className="material-symbols-outlined text-[24px]">admin_panel_settings</span>
-              <span className="text-[10px]">Demo Admin</span>
-            </Link>
           </>
         ) : (
           <Link to="/login" className="flex flex-col items-center gap-1 text-muted hover:text-navy transition-all">
@@ -90,14 +80,10 @@ export default function Navbar() {
               </div>
               <div>
                 <p className="font-label-md text-label-md truncate max-w-[120px] text-ink">{user.displayName || 'Citizen'}</p>
-                {isAuthority ? (
-                  <p className="font-caption text-caption text-sage font-bold uppercase tracking-wider">Authority</p>
-                ) : (
-                  <div className="flex items-center gap-1 mt-0.5" title="Civic Score">
-                    <span className="material-symbols-outlined text-[14px] text-terracotta">military_tech</span>
-                    <span className="font-caption text-caption font-bold text-navy">{userDoc?.civicScore || 0} pts</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1 mt-0.5" title="Civic Score">
+                  <span className="material-symbols-outlined text-[14px] text-terracotta">military_tech</span>
+                  <span className="font-caption text-caption font-bold text-navy">{userDoc?.civicScore || 0} pts</span>
+                </div>
               </div>
             </div>
           ) : (
@@ -147,26 +133,6 @@ export default function Navbar() {
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/my-reports') ? "'FILL' 1" : "" }}>folder_special</span>
               My Evidence Log
-            </Link>
-          )}
-
-          {isAuthority && (
-            <Link
-              to="/authority"
-              className={`${isActive('/authority') ? 'bg-navy text-white shadow-sm' : 'text-muted hover:bg-navy-surface hover:text-navy'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-colors duration-150 ease-out`}
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/authority') ? "'FILL' 1" : "" }}>admin_panel_settings</span>
-              Authority Portal
-            </Link>
-          )}
-
-          {isAdmin && (
-            <Link
-              to="/admin"
-              className={`${isActive('/admin') ? 'bg-navy text-white shadow-sm' : 'text-muted hover:bg-navy-surface hover:text-navy'} font-bold rounded-lg flex items-center gap-4 px-4 py-3 cursor-pointer mb-1 transition-colors duration-150 ease-out`}
-            >
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/admin') ? "'FILL' 1" : "" }}>settings_applications</span>
-              Admin Console
             </Link>
           )}
 

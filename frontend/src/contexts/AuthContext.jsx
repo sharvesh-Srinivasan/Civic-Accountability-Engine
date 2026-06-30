@@ -72,7 +72,6 @@ export function AuthProvider({ children }) {
       await setDoc(doc(db, 'users', cred.user.uid), {
         email,
         displayName,
-        isAuthority: false,
         verifiedReports: 0,
         civicScore: 0,
         streak: 0,
@@ -96,7 +95,6 @@ export function AuthProvider({ children }) {
         await setDoc(docRef, {
           email: cred.user.email,
           displayName: cred.user.displayName,
-          isAuthority: false,
           verifiedReports: 0,
           civicScore: 0,
           streak: 0,
@@ -113,8 +111,6 @@ export function AuthProvider({ children }) {
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
   const logout = () => signOut(auth);
 
-  const isAuthority = userDoc?.role === 'authority' || userDoc?.isAuthority === true;
-  const isAdmin = userDoc?.isAdmin === true;
   const isOnboarded = userDoc?.onboardingComplete === true;
 
   const updateOnboarding = async (data) => {
@@ -126,7 +122,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, loginWithGoogle, logout, isAuthority, isAdmin, isOnboarded, updateOnboarding }}>
+    <AuthContext.Provider value={{ user, userDoc, loading, signup, login, loginWithGoogle, logout, isOnboarded, updateOnboarding }}>
       {children}
     </AuthContext.Provider>
   );

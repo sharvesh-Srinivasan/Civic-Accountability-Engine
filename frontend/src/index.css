@@ -55,21 +55,7 @@
   z-index: 1;
 }
 
-/* FOUC layout shift prevention for Material Symbols */
-.material-symbols-outlined {
-  /* Prevent the raw fallback text (e.g. "add_a_photo") from stretching containers */
-  max-width: 1em;
-  max-height: 1em;
-  overflow: hidden;
-  /* Vertically align correctly in flex layouts */
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  vertical-align: middle;
-  /* Make the text invisible while fallback font is active. When the icon loads, the ligature renders as an icon shape which inherits the color */
-  color: transparent; 
-  text-shadow: 0 0 0 currentColor; /* The icon itself will take the text-shadow color */
-}
+
 
 /* Animation keyframes */
 @keyframes fade-in-up {

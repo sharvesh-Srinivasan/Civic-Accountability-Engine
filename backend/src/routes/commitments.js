@@ -1,12 +1,12 @@
 import express from 'express';
 import { db } from '../config/firebase.js';
-import { verifyToken, verifyAuthority } from '../middleware/auth.js';
+import { verifyToken } from '../middleware/auth.js';
 import { checkAndUpdateCommitments } from '../services/commitmentChecker.js';
 
 const router = express.Router();
 
 // POST /api/commitments — create a commitment (authority only)
-router.post('/', verifyAuthority, async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
     if (!db) return res.status(503).json({ error: 'DB not configured' });
     const { reportId, authorityName, promisedAction, etaDate } = req.body;
@@ -57,7 +57,7 @@ router.post('/check', async (req, res) => {
 });
 
 // POST /api/commitments/:id/resolve — explicitly honor a commitment and upload resolution photo
-router.post('/:id/resolve', verifyAuthority, async (req, res) => {
+router.post('/:id/resolve', verifyToken, async (req, res) => {
   try {
     if (!db) return res.status(503).json({ error: 'DB not configured' });
     const { resolutionImageUrl } = req.body;
